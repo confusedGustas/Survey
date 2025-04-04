@@ -1,4 +1,4 @@
-package org.site.survey.gateway;
+package org.site.survey.config;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -16,13 +16,9 @@ public class ApiGatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                // API routes
-                .route("survey-service", r -> r.path("/api/surveys/**")
-                        .uri("forward:/api/surveys"))
-                .route("user-service", r -> r.path("/api/users/**")
-                        .uri("forward:/api/users"))
-                .route("admin-service", r -> r.path("/api/admin/**")
-                        .uri("forward:/api/admin"))
+                .route("survey-service", r -> r.path("/api/surveys/**").uri("forward:/api/surveys"))
+                .route("user-service", r -> r.path("/api/users/**").uri("forward:/api/users"))
+                .route("admin-service", r -> r.path("/api/admin/**").uri("forward:/api/admin"))
                 .build();
     }
 
@@ -36,7 +32,6 @@ public class ApiGatewayConfig {
         public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
             String path = exchange.getRequest().getURI().getPath();
 
-            // Bypass gateway for Swagger paths
             if (path.startsWith("/swagger-ui") ||
                     path.startsWith("/v3/api-docs") ||
                     path.startsWith("/webjars")) {
