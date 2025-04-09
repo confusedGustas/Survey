@@ -18,7 +18,10 @@ public class User {
     private Integer id;
     private String username;
     private String email;
-    private String passwordHash;
-    private Integer roleId;
+    private String password;
+
+    @Builder.Default
+    private String role = "USER";
+
     private LocalDateTime createdAt;
 }

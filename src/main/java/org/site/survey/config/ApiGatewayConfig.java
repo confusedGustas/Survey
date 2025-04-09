@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 public class ApiGatewayConfig {
-
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
