@@ -1,4 +1,4 @@
-package org.site.survey.exception;
+package org.site.survey.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

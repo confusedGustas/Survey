@@ -1,4 +1,4 @@
-package org.site.survey.dto;
+package org.site.survey.dto.request;
 
 import lombok.Data;
 

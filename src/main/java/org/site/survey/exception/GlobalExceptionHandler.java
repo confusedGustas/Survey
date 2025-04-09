@@ -1,5 +1,6 @@
 package org.site.survey.exception;
 
+import org.site.survey.dto.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

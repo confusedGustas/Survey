@@ -1,8 +1,8 @@
 package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
-import org.site.survey.dto.UserRequest;
-import org.site.survey.dto.UserResponse;
+import org.site.survey.dto.request.UserRequest;
+import org.site.survey.dto.response.UserResponse;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.exception.ValidationException;
 import org.site.survey.model.Role;
