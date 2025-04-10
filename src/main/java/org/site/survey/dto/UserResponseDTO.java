@@ -2,7 +2,7 @@ package org.site.survey.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import org.site.survey.model.Role;
+import org.site.survey.type.Role;
 import java.time.LocalDateTime;
 
 @Data

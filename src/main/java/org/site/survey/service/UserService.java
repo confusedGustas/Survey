@@ -6,7 +6,7 @@ import org.site.survey.dto.UserResponseDTO;
 import org.site.survey.exception.UserNotFoundException;
 import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.integrity.UserDataIntegrity;
-import org.site.survey.model.Role;
+import org.site.survey.type.Role;
 import org.site.survey.model.User;
 import org.site.survey.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
