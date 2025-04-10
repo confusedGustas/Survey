@@ -10,12 +10,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.site.survey.dto.UserRequestDTO;
 import org.site.survey.dto.UserResponseDTO;
+import org.site.survey.exception.UserNotFoundException;
 import org.site.survey.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -32,10 +34,18 @@ public class UserController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
             content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
+        @ApiResponse(responseCode = "200", description = "User list is empty"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Flux<UserResponseDTO> getAllUsers() {
-        return userService.getAllUsers();
+    public Mono<ResponseEntity<Object>> getAllUsers() {
+        return userService.getAllUsers()
+                .collectList()
+                .flatMap(users -> {
+                    if (users.isEmpty()) {
+                        return Mono.just(ResponseEntity.ok(Map.of("message", "User list is empty")));
+                    }
+                    return Mono.just(ResponseEntity.ok(users));
+                });
     }
 
     @GetMapping("/{id}")
@@ -108,5 +118,32 @@ public class UserController {
         return userService.updateUser(username, userRequestDTO)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{username}")
+    @Operation(
+        summary = "Delete user",
+        description = "Deletes a user by their username"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User deleted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid username"),
+        @ApiResponse(responseCode = "404", description = "User not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public Mono<ResponseEntity<Object>> deleteUser(
+            @Parameter(description = "Username of the user to delete", required = true)
+            @PathVariable String username) {
+        return userService.deleteUser(username)
+                .then(Mono.just(ResponseEntity.ok((Object) Map.of(
+                    "status", 200,
+                    "message", String.format("User with username '%s' was deleted successfully", username)
+                ))))
+                .onErrorResume(throwable -> {
+                    if (throwable instanceof UserNotFoundException) {
+                        return Mono.error(throwable);
+                    }
+                    return Mono.error(throwable);
+                });
     }
 }

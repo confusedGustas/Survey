@@ -56,11 +56,6 @@ public class GlobalExceptionHandler {
         return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidCredentialsException(InvalidCredentialsException ex, ServerWebExchange exchange) {
-        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
-    }
-
     @ExceptionHandler(RequestValidationException.class)
     public Mono<ResponseEntity<Map<String, Object>>> handleRequestValidationException(RequestValidationException ex, ServerWebExchange exchange) {
         return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
