@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.site.survey.dto.request.UserRequest;
-import org.site.survey.dto.response.UserResponse;
+import org.site.survey.dto.UserRequestDTO;
+import org.site.survey.dto.UserResponseDTO;
 import org.site.survey.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +31,10 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
-            content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Flux<UserResponse> getAllUsers() {
+    public Flux<UserResponseDTO> getAllUsers() {
         return userService.getAllUsers();
     }
 
@@ -45,11 +45,11 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found successfully",
-            content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponse>> getUserById(@PathVariable Integer id) {
+    public Mono<ResponseEntity<UserResponseDTO>> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
@@ -62,11 +62,11 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found successfully",
-            content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponse>> getUserByUsername(@PathVariable String username) {
+    public Mono<ResponseEntity<UserResponseDTO>> getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
@@ -79,12 +79,12 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "User created successfully",
-            content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input or username/email already exists"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponse>> createUser(@RequestBody UserRequest userRequest) {
-        return userService.createUser(userRequest)
+    public Mono<ResponseEntity<UserResponseDTO>> createUser(@RequestBody UserRequestDTO userRequestDTO) {
+        return userService.createUser(userRequestDTO)
                 .map(ResponseEntity.status(HttpStatus.CREATED)::body);
     }
 
@@ -95,17 +95,17 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User updated successfully",
-            content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponse>> updateUser(
+    public Mono<ResponseEntity<UserResponseDTO>> updateUser(
             @Parameter(description = "Username of the user to update", required = true)
             @PathVariable String username,
             @Parameter(description = "Updated user details", required = true)
-            @RequestBody UserRequest userRequest) {
-        return userService.updateUser(username, userRequest)
+            @RequestBody UserRequestDTO userRequestDTO) {
+        return userService.updateUser(username, userRequestDTO)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }

@@ -1,6 +1,6 @@
 package org.site.survey.exception;
 
-import org.site.survey.dto.response.ErrorResponse;
+import org.site.survey.dto.ErrorResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -17,12 +17,12 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BaseException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleBaseException(BaseException ex, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleBaseException(BaseException ex, ServerWebExchange exchange) {
         return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
     }
 
     @ExceptionHandler(WebExchangeBindException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleValidationExceptions(
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleValidationExceptions(
             WebExchangeBindException ex, ServerWebExchange exchange) {
         
         String message = ex.getBindingResult()
@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleResponseStatusException(
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleResponseStatusException(
             ResponseStatusException ex, ServerWebExchange exchange) {
         return Mono.just(buildErrorResponse(
                 HttpStatus.valueOf(ex.getStatusCode().value()),
@@ -51,9 +51,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleResourceNotFoundException(ResourceNotFoundException ex, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleResourceNotFoundException(ResourceNotFoundException ex, ServerWebExchange exchange) {
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.builder()
+                .body(ErrorResponseDTO.builder()
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.NOT_FOUND)
                         .errorCode("NOT_FOUND")
@@ -63,9 +63,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleGenericException(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleGenericException(ServerWebExchange exchange) {
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.builder()
+                .body(ErrorResponseDTO.builder()
                         .timestamp(LocalDateTime.now())
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .errorCode("INTERNAL_SERVER_ERROR")
@@ -74,9 +74,9 @@ public class GlobalExceptionHandler {
                         .build()));
     }
 
-    private ResponseEntity<ErrorResponse> buildErrorResponse(
+    private ResponseEntity<ErrorResponseDTO> buildErrorResponse(
             HttpStatus status, String errorCode, String message, ServerWebExchange exchange) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
+        ErrorResponseDTO errorResponseDto = ErrorResponseDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .status(status)
                 .errorCode(errorCode)
@@ -84,6 +84,6 @@ public class GlobalExceptionHandler {
                 .path(exchange.getRequest().getPath().toString())
                 .build();
 
-        return new ResponseEntity<>(errorResponse, status);
+        return new ResponseEntity<>(errorResponseDto, status);
     }
 } 

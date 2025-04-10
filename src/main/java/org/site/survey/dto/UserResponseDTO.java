@@ -1,4 +1,4 @@
-package org.site.survey.dto.response;
+package org.site.survey.dto;
 
 import lombok.Builder;
 import lombok.Data;
@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class UserResponse {
+public class UserResponseDTO {
     private Integer id;
     private String username;
     private String email;

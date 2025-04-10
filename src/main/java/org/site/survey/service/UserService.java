@@ -1,8 +1,8 @@
 package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
-import org.site.survey.dto.request.UserRequest;
-import org.site.survey.dto.response.UserResponse;
+import org.site.survey.dto.UserRequestDTO;
+import org.site.survey.dto.UserResponseDTO;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.exception.ValidationException;
 import org.site.survey.model.Role;
@@ -20,25 +20,25 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public Flux<UserResponse> getAllUsers() {
+    public Flux<UserResponseDTO> getAllUsers() {
         return userRepository.findAll()
                 .map(this::mapToUserResponse);
     }
 
-    public Mono<UserResponse> getUserById(Integer id) {
+    public Mono<UserResponseDTO> getUserById(Integer id) {
         return userRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("User", "id", id)))
                 .map(this::mapToUserResponse);
     }
 
-    public Mono<UserResponse> getUserByUsername(String username) {
+    public Mono<UserResponseDTO> getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("User", "username", username)))
                 .map(this::mapToUserResponse);
     }
 
-    public Mono<UserResponse> createUser(UserRequest userRequest) {
-        return Mono.just(userRequest)
+    public Mono<UserResponseDTO> createUser(UserRequestDTO userRequestDTO) {
+        return Mono.just(userRequestDTO)
                 .flatMap(request -> userRepository.findByUsername(request.getUsername())
                         .hasElement()
                         .flatMap(usernameExists -> {
@@ -71,28 +71,28 @@ public class UserService {
                 });
     }
 
-    public Mono<UserResponse> updateUser(String username, UserRequest userRequest) {
+    public Mono<UserResponseDTO> updateUser(String username, UserRequestDTO userRequestDTO) {
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("User", "username", username)))
                 .flatMap(existingUser -> 
-                    userRepository.findByUsername(userRequest.getUsername())
+                    userRepository.findByUsername(userRequestDTO.getUsername())
                             .filter(user -> !user.getUsername().equals(username))
                             .hasElement()
                             .flatMap(usernameExists -> {
                                 if (usernameExists) {
                                     return Mono.error(new ValidationException("Username already exists"));
                                 }
-                                return userRepository.findByEmail(userRequest.getEmail())
+                                return userRepository.findByEmail(userRequestDTO.getEmail())
                                         .filter(user -> !user.getUsername().equals(username))
                                         .hasElement()
                                         .flatMap(emailExists -> {
                                             if (emailExists) {
                                                 return Mono.error(new ValidationException("Email already exists"));
                                             }
-                                            existingUser.setUsername(userRequest.getUsername());
-                                            existingUser.setEmail(userRequest.getEmail());
-                                            if (userRequest.getPassword() != null) {
-                                                existingUser.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+                                            existingUser.setUsername(userRequestDTO.getUsername());
+                                            existingUser.setEmail(userRequestDTO.getEmail());
+                                            if (userRequestDTO.getPassword() != null) {
+                                                existingUser.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
                                             }
                                             return userRepository.save(existingUser)
                                                     .map(this::mapToUserResponse);
@@ -106,8 +106,8 @@ public class UserService {
                 });
     }
 
-    private UserResponse mapToUserResponse(User user) {
-        return UserResponse.builder()
+    private UserResponseDTO mapToUserResponse(User user) {
+        return UserResponseDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
