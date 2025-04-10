@@ -1,6 +1,5 @@
 package org.site.survey.exception;
 
-import org.site.survey.dto.ErrorResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,18 +10,15 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BaseException.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleBaseException(BaseException ex, ServerWebExchange exchange) {
-        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
-    }
-
     @ExceptionHandler(WebExchangeBindException.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleValidationExceptions(
+    public Mono<ResponseEntity<Map<String, Object>>> handleValidationExceptions(
             WebExchangeBindException ex, ServerWebExchange exchange) {
         
         String message = ex.getBindingResult()
@@ -33,14 +29,14 @@ public class GlobalExceptionHandler {
 
         return Mono.just(buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                "VALIDATION_ERROR",
+                "REQUEST_VALIDATION_ERROR",
                 message,
                 exchange
         ));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleResponseStatusException(
+    public Mono<ResponseEntity<Map<String, Object>>> handleResponseStatusException(
             ResponseStatusException ex, ServerWebExchange exchange) {
         return Mono.just(buildErrorResponse(
                 HttpStatus.valueOf(ex.getStatusCode().value()),
@@ -50,40 +46,51 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleResourceNotFoundException(ResourceNotFoundException ex, ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponseDTO.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(HttpStatus.NOT_FOUND)
-                        .errorCode("NOT_FOUND")
-                        .message(ex.getMessage())
-                        .path(exchange.getRequest().getPath().toString())
-                        .build()));
+    @ExceptionHandler(UserNotFoundException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleUserNotFoundException(UserNotFoundException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleUserAlreadyExistsException(UserAlreadyExistsException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidCredentialsException(InvalidCredentialsException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(RequestValidationException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleRequestValidationException(RequestValidationException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
     }
 
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleGenericException(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Map<String, Object>>> handleGenericException(ServerWebExchange exchange) {
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponseDTO.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .errorCode("INTERNAL_SERVER_ERROR")
-                        .message("An unexpected error occurred")
-                        .path(exchange.getRequest().getPath().toString())
-                        .build()));
+                .body(buildErrorMap(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "INTERNAL_SERVER_ERROR",
+                        "An unexpected error occurred",
+                        exchange
+                )));
     }
 
-    private ResponseEntity<ErrorResponseDTO> buildErrorResponse(
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
             HttpStatus status, String errorCode, String message, ServerWebExchange exchange) {
-        ErrorResponseDTO errorResponseDto = ErrorResponseDTO.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status)
-                .errorCode(errorCode)
-                .message(message)
-                .path(exchange.getRequest().getPath().toString())
-                .build();
+        return new ResponseEntity<>(buildErrorMap(status, errorCode, message, exchange), status);
+    }
 
-        return new ResponseEntity<>(errorResponseDto, status);
+    private Map<String, Object> buildErrorMap(
+            HttpStatus status, String errorCode, String message, ServerWebExchange exchange) {
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("timestamp", LocalDateTime.now());
+        errorMap.put("status", status.value());
+        errorMap.put("error", status.getReasonPhrase());
+        errorMap.put("errorCode", errorCode);
+        errorMap.put("message", message);
+        errorMap.put("path", exchange.getRequest().getPath().toString());
+        return errorMap;
     }
 } 
