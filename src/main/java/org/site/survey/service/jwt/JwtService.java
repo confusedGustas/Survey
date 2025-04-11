@@ -67,14 +67,14 @@ public class JwtService {
             }
 
             if (!claims.containsKey("refresh") || !claims.get("refresh", Boolean.class)) {
-                return Mono.error(new InvalidRefreshTokenException("Access token cannot be used for refresh"));
+                return Mono.error(new InvalidRefreshTokenException());
             }
 
             String username = claims.getSubject();
             String role = claims.get("role", String.class);
 
             if (username == null || role == null) {
-                return Mono.error(new InvalidTokenException("Invalid refresh token claims"));
+                return Mono.error(new InvalidTokenException());
             }
 
             // Generate new access and refresh tokens
@@ -87,7 +87,7 @@ public class JwtService {
 
             return Mono.just(tokens);
         } catch (Exception e) {
-            return Mono.error(new InvalidTokenException("Invalid refresh token"));
+            return Mono.error(new InvalidTokenException());
         }
     }
 
@@ -101,7 +101,7 @@ public class JwtService {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         } catch (Exception e) {
-            throw new InvalidTokenException("Invalid token");
+            throw new InvalidTokenException();
         }
     }
 

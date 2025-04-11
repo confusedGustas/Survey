@@ -10,10 +10,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.site.survey.dto.UserRequestDTO;
 import org.site.survey.dto.UserResponseDTO;
-import org.site.survey.exception.UserNotFoundException;
+import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.service.UserService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import java.util.Map;
@@ -36,14 +35,15 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "User list is or isn't empty"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<Object>> getAllUsers() {
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<Object> getAllUsers() {
         return userService.getAllUsers()
                 .collectList()
-                .flatMap(users -> {
+                .map(users -> {
                     if (users.isEmpty()) {
-                        return Mono.just(ResponseEntity.ok(Map.of("message", "User list is empty")));
+                        return Map.of("message", "User list is empty");
                     }
-                    return Mono.just(ResponseEntity.ok(users));
+                    return users;
                 });
     }
 
@@ -58,10 +58,10 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponseDTO>> getUserById(@PathVariable Integer id) {
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<UserResponseDTO> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
     }
 
     @GetMapping("/username/{username}")
@@ -75,10 +75,10 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponseDTO>> getUserByUsername(@PathVariable String username) {
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<UserResponseDTO> getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
     }
 
     @PostMapping
@@ -92,9 +92,9 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid input or username/email already exists"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponseDTO>> createUser(@RequestBody UserRequestDTO userRequestDTO) {
-        return userService.createUser(userRequestDTO)
-                .map(ResponseEntity.status(HttpStatus.CREATED)::body);
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<UserResponseDTO> createUser(@RequestBody UserRequestDTO userRequestDTO) {
+        return userService.createUser(userRequestDTO);
     }
 
     @PutMapping("/{username}")
@@ -109,14 +109,14 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<UserResponseDTO>> updateUser(
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<UserResponseDTO> updateUser(
             @Parameter(description = "Username of the user to update", required = true)
             @PathVariable String username,
             @Parameter(description = "Updated user details", required = true)
             @RequestBody UserRequestDTO userRequestDTO) {
         return userService.updateUser(username, userRequestDTO)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
     }
 
     @DeleteMapping("/{username}")
@@ -130,19 +130,14 @@ public class UserController {
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<Object>> deleteUser(
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<Map<String, Object>> deleteUser(
             @Parameter(description = "Username of the user to delete", required = true)
             @PathVariable String username) {
         return userService.deleteUser(username)
-                .then(Mono.just(ResponseEntity.ok((Object) Map.of(
+                .then(Mono.just(Map.of(
                     "status", 200,
                     "message", String.format("User with username '%s' was deleted successfully", username)
-                ))))
-                .onErrorResume(throwable -> {
-                    if (throwable instanceof UserNotFoundException) {
-                        return Mono.error(throwable);
-                    }
-                    return Mono.error(throwable);
-                });
+                )));
     }
 }

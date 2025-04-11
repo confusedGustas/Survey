@@ -10,7 +10,7 @@ import org.site.survey.dto.AuthResponseDTO;
 import org.site.survey.exception.AuthenticationException;
 import org.site.survey.service.UserService;
 import org.site.survey.service.jwt.JwtService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -32,14 +32,15 @@ public class AuthController {
         @ApiResponse(responseCode = "401", description = "Invalid credentials"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<AuthResponseDTO>> login(@RequestBody AuthRequestDTO authRequest) {
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<AuthResponseDTO> login(@RequestBody AuthRequestDTO authRequest) {
         return userService.authenticateUser(authRequest.getUsername(), authRequest.getPassword())
                 .flatMap(user -> {
                     String accessToken = jwtService.generateToken(user.getUsername(), user.getRole());
                     String refreshToken = jwtService.generateRefreshToken(user.getUsername(), user.getRole());
-                    return Mono.just(ResponseEntity.ok(new AuthResponseDTO(accessToken, refreshToken)));
+                    return Mono.just(new AuthResponseDTO(accessToken, refreshToken));
                 })
-                .onErrorMap(e -> new AuthenticationException("Invalid credentials"));
+                .onErrorMap(e -> new AuthenticationException());
     }
 
     @PostMapping("/refresh")
@@ -53,11 +54,12 @@ public class AuthController {
         @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<AuthResponseDTO>> refreshToken(@RequestParam String refreshToken) {
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<AuthResponseDTO> refreshToken(@RequestParam String refreshToken) {
         return jwtService.refreshTokens(refreshToken)
-                .map(tokens -> ResponseEntity.ok(new AuthResponseDTO(
+                .map(tokens -> new AuthResponseDTO(
                     tokens.get("accessToken"),
                     tokens.get("refreshToken")
-                )));
+                ));
     }
 } 

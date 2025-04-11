@@ -3,19 +3,19 @@ package org.site.survey.exception;
 import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-public class InvalidTokenException extends BaseException {
+public class ServerErrorException extends BaseException {
     @Override
     public HttpStatus getStatus() {
-        return HttpStatus.UNAUTHORIZED;
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
     @Override
     public String getErrorCode() {
-        return "INVALID_TOKEN";
+        return "SERVER_ERROR";
     }
 
     @Override
     public String getMessage() {
-        return "Invalid or expired token";
+        return "An unexpected server error occurred";
     }
 } 

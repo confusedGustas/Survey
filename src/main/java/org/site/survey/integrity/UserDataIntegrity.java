@@ -13,40 +13,40 @@ public class UserDataIntegrity {
 
     public void validateUserId(Integer id) {
         if (id == null || id <= 0) {
-            throw new RequestValidationException("Invalid user ID");
+            throw new RequestValidationException();
         }
     }
 
     public void validateUsername(String username) {
         if (username == null || username.trim().isEmpty()) {
-            throw new RequestValidationException("Username cannot be empty");
+            throw new RequestValidationException();
         }
         if (!USERNAME_PATTERN.matcher(username).matches()) {
-            throw new RequestValidationException("Username must be 3-20 characters long and can only contain letters, numbers, underscores, and hyphens");
+            throw new RequestValidationException();
         }
     }
 
     public void validateEmail(String email) {
         if (email == null || email.trim().isEmpty()) {
-            throw new RequestValidationException("Email cannot be empty");
+            throw new RequestValidationException();
         }
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            throw new RequestValidationException("Invalid email format");
+            throw new RequestValidationException();
         }
     }
 
     public void validatePassword(String password) {
         if (password == null || password.trim().isEmpty()) {
-            throw new RequestValidationException("Password cannot be empty");
+            throw new RequestValidationException();
         }
         if (!PASSWORD_PATTERN.matcher(password).matches()) {
-            throw new RequestValidationException("Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+            throw new RequestValidationException();
         }
     }
 
     public void validateUserRequest(UserRequestDTO request) {
         if (request == null) {
-            throw new RequestValidationException("User request cannot be null");
+            throw new RequestValidationException();
         }
         validateUsername(request.getUsername());
         validateEmail(request.getEmail());

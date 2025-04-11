@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class UserAlreadyExistsException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class UserAlreadyExistsException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.CONFLICT;
+    }
 
-    public UserAlreadyExistsException(String email) {
-        super(String.format("User with either email or username '%s' already exists", email));
-        this.status = HttpStatus.CONFLICT;
-        this.errorCode = "USER_ALREADY_EXISTS";
+    @Override
+    public String getErrorCode() {
+        return "USER_ALREADY_EXISTS";
+    }
+
+    @Override
+    public String getMessage() {
+        return "User with this username or email already exists";
     }
 } 

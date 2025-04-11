@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class InvalidCredentialsException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class InvalidCredentialsException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.UNAUTHORIZED;
+    }
 
-    public InvalidCredentialsException() {
-        super("Invalid password");
-        this.status = HttpStatus.UNAUTHORIZED;
-        this.errorCode = "INVALID_CREDENTIALS";
+    @Override
+    public String getErrorCode() {
+        return "INVALID_CREDENTIALS";
+    }
+
+    @Override
+    public String getMessage() {
+        return "Invalid username or password";
     }
 } 

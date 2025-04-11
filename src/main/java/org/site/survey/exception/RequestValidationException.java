@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class RequestValidationException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class RequestValidationException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.BAD_REQUEST;
+    }
 
-    public RequestValidationException(String message) {
-        super(message);
-        this.status = HttpStatus.BAD_REQUEST;
-        this.errorCode = "REQUEST_VALIDATION_ERROR";
+    @Override
+    public String getErrorCode() {
+        return "REQUEST_VALIDATION_ERROR";
+    }
+
+    @Override
+    public String getMessage() {
+        return "Request validation failed: Invalid input data";
     }
 } 

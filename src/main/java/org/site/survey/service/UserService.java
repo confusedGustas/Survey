@@ -32,14 +32,14 @@ public class UserService {
     public Mono<UserResponseDTO> getUserById(Integer id) {
         userDataIntegrity.validateUserId(id);
         return userRepository.findById(id)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(String.valueOf(id))))
+                .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .map(this::mapToUserResponse);
     }
 
     public Mono<UserResponseDTO> getUserByUsername(String username) {
         userDataIntegrity.validateUsername(username);
         return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
+                .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .map(this::mapToUserResponse);
     }
 
@@ -51,13 +51,13 @@ public class UserService {
                         .hasElement()
                         .flatMap(usernameExists -> {
                             if (usernameExists) {
-                                return Mono.error(new UserAlreadyExistsException(request.getUsername()));
+                                return Mono.error(new UserAlreadyExistsException());
                             }
                             return userRepository.findByEmail(request.getEmail())
                                     .hasElement()
                                     .flatMap(emailExists -> {
                                         if (emailExists) {
-                                            return Mono.error(new UserAlreadyExistsException(request.getEmail()));
+                                            return Mono.error(new UserAlreadyExistsException());
                                         }
                                         User user = User.builder()
                                                 .username(request.getUsername())
@@ -75,7 +75,7 @@ public class UserService {
                     if (throwable instanceof UserAlreadyExistsException) {
                         return throwable;
                     }
-                    return new ServiceException("Failed to create user: " + throwable.getMessage());
+                    return new ServiceException();
                 });
     }
 
@@ -84,21 +84,21 @@ public class UserService {
         userDataIntegrity.validateUserRequest(userRequestDTO);
         
         return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
+                .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .flatMap(existingUser -> 
                     userRepository.findByUsername(userRequestDTO.getUsername())
                             .filter(user -> !user.getUsername().equals(username))
                             .hasElement()
                             .flatMap(usernameExists -> {
                                 if (usernameExists) {
-                                    return Mono.error(new UserAlreadyExistsException(userRequestDTO.getUsername()));
+                                    return Mono.error(new UserAlreadyExistsException());
                                 }
                                 return userRepository.findByEmail(userRequestDTO.getEmail())
                                         .filter(user -> !user.getUsername().equals(username))
                                         .hasElement()
                                         .flatMap(emailExists -> {
                                             if (emailExists) {
-                                                return Mono.error(new UserAlreadyExistsException(userRequestDTO.getEmail()));
+                                                return Mono.error(new UserAlreadyExistsException());
                                             }
                                             existingUser.setUsername(userRequestDTO.getUsername());
                                             existingUser.setEmail(userRequestDTO.getEmail());
@@ -114,20 +114,20 @@ public class UserService {
                         throwable instanceof UserAlreadyExistsException) {
                         return throwable;
                     }
-                    return new ServiceException("Failed to update user: " + throwable.getMessage());
+                    return new ServiceException();
                 });
     }
 
     public Mono<Object> deleteUser(String username) {
         userDataIntegrity.validateUsername(username);
         return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
+                .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .flatMap(userRepository::delete);
     }
 
     public Mono<User> authenticateUser(String username, String password) {
         return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
+                .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .flatMap(user -> {
                     if (passwordEncoder.matches(password, user.getPassword())) {
                         return Mono.just(user);

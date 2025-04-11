@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class InvalidRefreshTokenException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class InvalidRefreshTokenException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.UNAUTHORIZED;
+    }
 
-    public InvalidRefreshTokenException(String message) {
-        super(message);
-        this.status = HttpStatus.BAD_REQUEST;
-        this.errorCode = "INVALID_REFRESH_TOKEN";
+    @Override
+    public String getErrorCode() {
+        return "INVALID_REFRESH_TOKEN";
+    }
+
+    @Override
+    public String getMessage() {
+        return "Invalid or expired refresh token";
     }
 } 

@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class UserNotFoundException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class UserNotFoundException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.NOT_FOUND;
+    }
 
-    public UserNotFoundException(String userId) {
-        super(String.format("User with id '%s' not found", userId));
-        this.status = HttpStatus.NOT_FOUND;
-        this.errorCode = "USER_NOT_FOUND";
+    @Override
+    public String getErrorCode() {
+        return "USER_NOT_FOUND";
+    }
+
+    @Override
+    public String getMessage() {
+        return "User not found";
     }
 } 

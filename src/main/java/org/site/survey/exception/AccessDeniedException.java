@@ -1,16 +1,21 @@
 package org.site.survey.exception;
 
-import lombok.Getter;
+import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-@Getter
-public class AccessDeniedException extends RuntimeException {
-    private final HttpStatus status;
-    private final String errorCode;
+public class AccessDeniedException extends BaseException {
+    @Override
+    public HttpStatus getStatus() {
+        return HttpStatus.FORBIDDEN;
+    }
 
-    public AccessDeniedException() {
-        super("Access denied");
-        this.status = HttpStatus.FORBIDDEN;
-        this.errorCode = "ACCESS_DENIED";
+    @Override
+    public String getErrorCode() {
+        return "ACCESS_DENIED";
+    }
+
+    @Override
+    public String getMessage() {
+        return "Access denied: Insufficient permissions";
     }
 } 

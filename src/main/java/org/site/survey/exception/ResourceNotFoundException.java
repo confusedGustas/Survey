@@ -3,19 +3,19 @@ package org.site.survey.exception;
 import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-public class InvalidTokenException extends BaseException {
+public class ResourceNotFoundException extends BaseException {
     @Override
     public HttpStatus getStatus() {
-        return HttpStatus.UNAUTHORIZED;
+        return HttpStatus.NOT_FOUND;
     }
 
     @Override
     public String getErrorCode() {
-        return "INVALID_TOKEN";
+        return "RESOURCE_NOT_FOUND";
     }
 
     @Override
     public String getMessage() {
-        return "Invalid or expired token";
+        return "The requested resource was not found";
     }
 } 
