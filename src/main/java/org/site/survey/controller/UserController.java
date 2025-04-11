@@ -33,7 +33,7 @@ public class UserController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
             content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
-        @ApiResponse(responseCode = "200", description = "User list is empty"),
+        @ApiResponse(responseCode = "200", description = "User list is or isn't empty"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public Mono<ResponseEntity<Object>> getAllUsers() {

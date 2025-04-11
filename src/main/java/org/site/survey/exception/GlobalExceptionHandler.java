@@ -61,23 +61,67 @@ public class GlobalExceptionHandler {
         return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidCredentialsException(InvalidCredentialsException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleTokenExpiredException(TokenExpiredException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleCustomAccessDeniedException(AccessDeniedException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleSpringAccessDeniedException(ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "ACCESS_DENIED",
+                "Access denied",
+                exchange
+        ));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleAuthenticationException(AuthenticationException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(ServiceException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleServiceException(ServiceException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidTokenException(InvalidTokenException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(InvalidRefreshRequestException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidRefreshRequestException(InvalidRefreshRequestException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidRefreshTokenException(InvalidRefreshTokenException ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), exchange));
+    }
+
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleGenericException(ServerWebExchange exchange) {
-        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(buildErrorMap(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "INTERNAL_SERVER_ERROR",
-                        "An unexpected error occurred",
-                        exchange
-                )));
+    public Mono<ResponseEntity<Map<String, Object>>> handleGenericException(Exception ex, ServerWebExchange exchange) {
+        return Mono.just(buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_SERVER_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred",
+                exchange
+        ));
     }
 
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
-            HttpStatus status, String errorCode, String message, ServerWebExchange exchange) {
-        return new ResponseEntity<>(buildErrorMap(status, errorCode, message, exchange), status);
-    }
-
-    private Map<String, Object> buildErrorMap(
             HttpStatus status, String errorCode, String message, ServerWebExchange exchange) {
         Map<String, Object> errorMap = new HashMap<>();
         errorMap.put("timestamp", LocalDateTime.now());
@@ -86,6 +130,6 @@ public class GlobalExceptionHandler {
         errorMap.put("errorCode", errorCode);
         errorMap.put("message", message);
         errorMap.put("path", exchange.getRequest().getPath().toString());
-        return errorMap;
+        return new ResponseEntity<>(errorMap, status);
     }
 } 

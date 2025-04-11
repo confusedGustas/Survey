@@ -5,6 +5,8 @@ import org.site.survey.dto.UserRequestDTO;
 import org.site.survey.dto.UserResponseDTO;
 import org.site.survey.exception.UserNotFoundException;
 import org.site.survey.exception.UserAlreadyExistsException;
+import org.site.survey.exception.InvalidCredentialsException;
+import org.site.survey.exception.ServiceException;
 import org.site.survey.integrity.UserDataIntegrity;
 import org.site.survey.type.Role;
 import org.site.survey.model.User;
@@ -73,7 +75,7 @@ public class UserService {
                     if (throwable instanceof UserAlreadyExistsException) {
                         return throwable;
                     }
-                    return new RuntimeException("Failed to create user: " + throwable.getMessage());
+                    return new ServiceException("Failed to create user: " + throwable.getMessage());
                 });
     }
 
@@ -112,7 +114,7 @@ public class UserService {
                         throwable instanceof UserAlreadyExistsException) {
                         return throwable;
                     }
-                    return new RuntimeException("Failed to update user: " + throwable.getMessage());
+                    return new ServiceException("Failed to update user: " + throwable.getMessage());
                 });
     }
 
@@ -121,6 +123,17 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
                 .flatMap(userRepository::delete);
+    }
+
+    public Mono<User> authenticateUser(String username, String password) {
+        return userRepository.findByUsername(username)
+                .switchIfEmpty(Mono.error(new UserNotFoundException(username)))
+                .flatMap(user -> {
+                    if (passwordEncoder.matches(password, user.getPassword())) {
+                        return Mono.just(user);
+                    }
+                    return Mono.error(new InvalidCredentialsException());
+                });
     }
 
     private UserResponseDTO mapToUserResponse(User user) {
