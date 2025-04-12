@@ -160,4 +160,33 @@ class UserRepositoryTest {
                 .expectNextCount(0)
                 .verifyComplete();
     }
+
+    @Test
+    void findAll_MultipleUsers_ReturnsAllUsers() {
+        User user1 = User.builder()
+                .username("user1")
+                .email("user1@example.com")
+                .password("password1")
+                .role("USER")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        User user2 = User.builder()
+                .username("user2")
+                .email("user2@example.com")
+                .password("password2")
+                .role("ADMIN")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        userRepository.save(user1).block();
+        userRepository.save(user2).block();
+
+        StepVerifier.create(userRepository.findAll().collectList())
+                .expectNextMatches(users -> 
+                    users.size() == 2 &&
+                    users.stream().anyMatch(u -> u.getUsername().equals("user1")) &&
+                    users.stream().anyMatch(u -> u.getUsername().equals("user2")))
+                .verifyComplete();
+    }
 } 

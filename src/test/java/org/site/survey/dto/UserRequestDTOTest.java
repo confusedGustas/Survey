@@ -6,78 +6,69 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserRequestDTOTest {
 
     @Test
-    void builder_ValidData_CreatesDTOCorrectly() {
-        String username = "testuser";
-        String email = "test@example.com";
-        String password = "Password123!";
-
+    void testBuilder() {
         UserRequestDTO dto = UserRequestDTO.builder()
-                .username(username)
-                .email(email)
-                .password(password)
+                .username("testuser")
+                .email("test@example.com")
+                .password("password123")
                 .build();
-
-        assertEquals(username, dto.getUsername());
-        assertEquals(email, dto.getEmail());
-        assertEquals(password, dto.getPassword());
-    }
-    
-    @Test
-    void setters_UpdateFieldsCorrectly() {
-        UserRequestDTO dto = new UserRequestDTO("testuser", "Password123!", "test@example.com");
-
+        
         assertEquals("testuser", dto.getUsername());
         assertEquals("test@example.com", dto.getEmail());
-        assertEquals("Password123!", dto.getPassword());
+        assertEquals("password123", dto.getPassword());
     }
     
     @Test
-    void equals_SameData_ReturnsTrue() {
+    void testSettersAndGetters() {
+        UserRequestDTO dto = UserRequestDTO.builder().build();
+        
+        dto.setUsername("testuser");
+        dto.setEmail("test@example.com");
+        dto.setPassword("password123");
+        
+        assertEquals("testuser", dto.getUsername());
+        assertEquals("test@example.com", dto.getEmail());
+        assertEquals("password123", dto.getPassword());
+    }
+    
+    @Test
+    void testEquals() {
         UserRequestDTO dto1 = UserRequestDTO.builder()
                 .username("testuser")
                 .email("test@example.com")
-                .password("Password123!")
+                .password("password123")
                 .build();
-                
+        
         UserRequestDTO dto2 = UserRequestDTO.builder()
                 .username("testuser")
                 .email("test@example.com")
-                .password("Password123!")
+                .password("password123")
                 .build();
-
+        
+        UserRequestDTO dto3 = UserRequestDTO.builder()
+                .username("otheruser")
+                .email("other@example.com")
+                .password("password456")
+                .build();
+        
         assertEquals(dto1, dto2);
+        assertNotEquals(dto1, dto3);
         assertEquals(dto1.hashCode(), dto2.hashCode());
+        assertNotEquals(dto1.hashCode(), dto3.hashCode());
     }
     
     @Test
-    void equals_DifferentData_ReturnsFalse() {
-        UserRequestDTO dto1 = UserRequestDTO.builder()
-                .username("testuser1")
-                .email("test1@example.com")
-                .password("Password123!")
-                .build();
-                
-        UserRequestDTO dto2 = UserRequestDTO.builder()
-                .username("testuser2")
-                .email("test2@example.com")
-                .password("Password123!")
-                .build();
-
-        assertNotEquals(dto1, dto2);
-    }
-    
-    @Test
-    void toString_ContainsAllFields() {
+    void testToString() {
         UserRequestDTO dto = UserRequestDTO.builder()
                 .username("testuser")
                 .email("test@example.com")
-                .password("Password123!")
+                .password("password123")
                 .build();
-
-        String dtoString = dto.toString();
-
-        assertTrue(dtoString.contains("username=testuser"));
-        assertTrue(dtoString.contains("email=test@example.com"));
-        assertTrue(dtoString.contains("password=Password123!"));
+        
+        String toString = dto.toString();
+        
+        assertTrue(toString.contains("username=testuser"));
+        assertTrue(toString.contains("email=test@example.com"));
+        assertTrue(toString.contains("password=password123"));
     }
 } 
