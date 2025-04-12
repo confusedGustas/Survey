@@ -135,6 +135,55 @@ class JwtServiceTest {
                 .verify();
     }
 
+    @Test
+    void extractUsername_TamperedToken_ThrowsException() {
+        String validToken = jwtService.generateToken("testuser", "USER");
+        String tamperedToken = validToken.substring(0, validToken.length() - 5) + "XXXXX";
+        
+        assertThrows(InvalidTokenException.class, () -> jwtService.extractUsername(tamperedToken));
+    }
+    
+    @Test
+    void refreshTokens_TokenWithMissingClaims_ReturnsError() {
+        String incompleteToken = Jwts.builder()
+                .subject("testuser")
+                .claim("role", "USER")
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 3600000))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY)))
+                .compact();
+        
+        Mono<Map<String, String>> result = jwtService.refreshTokens(incompleteToken);
+        
+        StepVerifier.create(result)
+                .expectError(InvalidRefreshTokenException.class)
+                .verify();
+    }
+    
+    @Test
+    void refreshTokens_ExpiredRefreshToken_StillAllowed() {
+        Date issuedAt = new Date(System.currentTimeMillis() - 90000000);
+        Date expiration = new Date(issuedAt.getTime() + 10000);
+        
+        String expiredToken = Jwts.builder()
+                .subject("testuser")
+                .claim("role", "USER")
+                .claim("refresh", true)
+                .issuedAt(issuedAt)
+                .expiration(expiration)
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY)))
+                .compact();
+        
+        Mono<Map<String, String>> result = jwtService.refreshTokens(expiredToken);
+        
+        StepVerifier.create(result)
+                .assertNext(tokens -> {
+                    assertNotNull(tokens.get("accessToken"));
+                    assertNotNull(tokens.get("refreshToken"));
+                })
+                .verifyComplete();
+    }
+
     private Claims extractClaims(String token) {
         return Jwts.parser()
                 .verifyWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY)))

@@ -1,6 +1,7 @@
 package org.site.survey.service.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -8,13 +9,12 @@ import org.site.survey.exception.InvalidRefreshTokenException;
 import org.site.survey.exception.InvalidTokenException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import io.jsonwebtoken.ExpiredJwtException;
-import reactor.core.publisher.Mono;
 
 @Service
 public class JwtService {
@@ -77,7 +77,6 @@ public class JwtService {
                 return Mono.error(new InvalidTokenException());
             }
 
-            // Generate new access and refresh tokens
             String newAccessToken = generateToken(username, role);
             String newRefreshToken = generateRefreshToken(username, role);
 

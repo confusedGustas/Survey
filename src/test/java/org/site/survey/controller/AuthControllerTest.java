@@ -90,6 +90,23 @@ class AuthControllerTest {
     }
 
     @Test
+    void login_NonExistentUser_ReturnsUnauthorized() {
+        AuthRequestDTO authRequest = new AuthRequestDTO();
+        authRequest.setUsername("nonexistent");
+        authRequest.setPassword("password");
+
+        when(userService.authenticateUser("nonexistent", "password"))
+                .thenReturn(Mono.error(new AuthenticationException()));
+
+        webTestClient.post()
+                .uri("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(authRequest)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
     void refreshToken_ValidToken_ReturnsNewTokens() {
         Map<String, String> tokens = new HashMap<>();
         tokens.put("accessToken", "new-access-token");
@@ -124,5 +141,28 @@ class AuthControllerTest {
                         .build())
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void refreshToken_ExpiredToken_StillGeneratesNewTokens() {
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", "new-access-token");
+        tokens.put("refreshToken", "new-refresh-token");
+
+        when(jwtService.refreshTokens("expired-refresh-token"))
+                .thenReturn(Mono.just(tokens));
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/auth/refresh")
+                        .queryParam("refreshToken", "expired-refresh-token")
+                        .build())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AuthResponseDTO.class)
+                .value(response -> {
+                    assert response.getAccessToken().equals("new-access-token");
+                    assert response.getRefreshToken().equals("new-refresh-token");
+                });
     }
 } 
