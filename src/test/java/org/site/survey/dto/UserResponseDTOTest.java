@@ -1,83 +1,80 @@
 package org.site.survey.dto;
 
 import org.junit.jupiter.api.Test;
+import org.site.survey.type.RoleType;
 import org.site.survey.dto.response.UserResponseDTO;
-import org.site.survey.type.Role;
 import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 class UserResponseDTOTest {
 
     @Test
-    void builder_ValidData_CreatesDTOCorrectly() {
-        Integer id = 1;
-        String username = "testuser";
-        String email = "test@example.com";
-        Role role = Role.USER;
-        LocalDateTime createdAt = LocalDateTime.now();
-
-        UserResponseDTO dto = UserResponseDTO.builder()
-                .id(id)
-                .username(username)
-                .email(email)
-                .role(role)
-                .createdAt(createdAt)
-                .build();
-
-        assertEquals(id, dto.getId());
-        assertEquals(username, dto.getUsername());
-        assertEquals(email, dto.getEmail());
-        assertEquals(role, dto.getRole());
-        assertEquals(createdAt, dto.getCreatedAt());
-    }
-    
-    @Test
-    void setters_UpdateFieldsCorrectly() {
-        UserResponseDTO dto = new UserResponseDTO(1, "testuser", "test@example.com", Role.ADMIN, LocalDateTime.now());
+    void testGettersAndSetters() {
+        LocalDateTime now = LocalDateTime.now();
+        RoleType role = RoleType.USER;
+        
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(1);
+        dto.setUsername("testuser");
+        dto.setEmail("test@example.com");
+        dto.setRole(role);
+        dto.setCreatedAt(now);
+        
         assertEquals(1, dto.getId());
         assertEquals("testuser", dto.getUsername());
         assertEquals("test@example.com", dto.getEmail());
-        assertEquals(Role.ADMIN, dto.getRole());
+        assertEquals(role, dto.getRole());
+        assertEquals(now, dto.getCreatedAt());
     }
     
     @Test
-    void equals_SameData_ReturnsTrue() {
-        LocalDateTime createdAt = LocalDateTime.of(2023, 1, 1, 0, 0);
+    void testConstructor() {
+        LocalDateTime now = LocalDateTime.now();
         
-        UserResponseDTO dto1 = UserResponseDTO.builder()
-                .id(1)
-                .username("testuser")
-                .email("test@example.com")
-                .role(Role.USER)
-                .createdAt(createdAt)
-                .build();
-                
-        UserResponseDTO dto2 = UserResponseDTO.builder()
-                .id(1)
-                .username("testuser")
-                .email("test@example.com")
-                .role(Role.USER)
-                .createdAt(createdAt)
-                .build();
-
-        assertEquals(dto1, dto2);
-        assertEquals(dto1.hashCode(), dto2.hashCode());
+        UserResponseDTO dto = new UserResponseDTO(1, "testuser", "test@example.com", RoleType.ADMIN, now);
+        
+        assertEquals(1, dto.getId());
+        assertEquals("testuser", dto.getUsername());
+        assertEquals("test@example.com", dto.getEmail());
+        assertEquals(RoleType.ADMIN, dto.getRole());
+        assertEquals(now, dto.getCreatedAt());
     }
     
     @Test
-    void equals_DifferentData_ReturnsFalse() {
+    void testBuilder() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        UserResponseDTO dto = UserResponseDTO.builder()
+                .id(1)
+                .username("testuser")
+                .email("test@example.com")
+                .role(RoleType.USER)
+                .createdAt(now)
+                .build();
+        
+        assertEquals(1, dto.getId());
+        assertEquals("testuser", dto.getUsername());
+        assertEquals("test@example.com", dto.getEmail());
+        assertEquals(RoleType.USER, dto.getRole());
+        assertEquals(now, dto.getCreatedAt());
+    }
+    
+    @Test
+    void testEquals() {
         UserResponseDTO dto1 = UserResponseDTO.builder()
                 .id(1)
-                .username("testuser1")
-                .email("test1@example.com")
-                .role(Role.USER)
+                .username("testuser")
+                .email("test@example.com")
+                .role(RoleType.ADMIN)
+                .createdAt(LocalDateTime.of(2023, 1, 1, 0, 0))
                 .build();
-                
+        
         UserResponseDTO dto2 = UserResponseDTO.builder()
-                .id(2)
-                .username("testuser2")
-                .email("test2@example.com")
-                .role(Role.ADMIN)
+                .id(1)
+                .username("testuser")
+                .email("test@example.com")
+                .role(RoleType.USER)
+                .createdAt(LocalDateTime.of(2023, 1, 1, 0, 0))
                 .build();
         
         assertNotEquals(dto1, dto2);
@@ -91,7 +88,7 @@ class UserResponseDTOTest {
                 .id(1)
                 .username("testuser")
                 .email("test@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(createdAt)
                 .build();
         

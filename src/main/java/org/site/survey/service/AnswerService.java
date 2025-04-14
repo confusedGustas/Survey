@@ -5,12 +5,12 @@ import org.site.survey.dto.request.QuestionAnswerDTO;
 import org.site.survey.dto.request.SurveyAnswerRequestDTO;
 import org.site.survey.dto.response.AnswerResponseDTO;
 import org.site.survey.dto.response.GroupedSurveyAnswerResponseDTO;
-import org.site.survey.dto.response.QuestionGroupedAnswerDTO;
 import org.site.survey.dto.response.SurveyAnswerResponseDTO;
 import org.site.survey.exception.ChoiceNotFoundException;
 import org.site.survey.exception.InvalidAnswerFormatException;
 import org.site.survey.exception.QuestionNotFoundException;
 import org.site.survey.exception.SurveyNotFoundException;
+import org.site.survey.mapper.AnswerMapper;
 import org.site.survey.model.Answer;
 import org.site.survey.model.Question;
 import org.site.survey.repository.AnswerRepository;
@@ -37,6 +37,7 @@ public class AnswerService {
     private final QuestionRepository questionRepository;
     private final ChoiceRepository choiceRepository;
     private final SurveyRepository surveyRepository;
+    private final AnswerMapper answerMapper;
 
     @Transactional
     public Mono<SurveyAnswerResponseDTO> submitSurveyAnswers(SurveyAnswerRequestDTO request, Integer userId) {
@@ -117,7 +118,7 @@ public class AnswerService {
                                     Mono<AnswerResponseDTO> answerMono = choiceRepository.findById(answerDTO.getChoiceId())
                                             .switchIfEmpty(Mono.error(new ChoiceNotFoundException()))
                                             .flatMap(choice -> answerRepository.save(newAnswer)
-                                                    .map(savedAnswer -> buildAnswerResponse(savedAnswer, choice.getChoiceText())));
+                                                    .map(savedAnswer -> answerMapper.mapToAnswerResponse(savedAnswer, choice.getChoiceText())));
 
                                     answerMonos.add(answerMono);
                                 } else if (type == QuestionType.TEXT) {
@@ -130,7 +131,7 @@ public class AnswerService {
                                             .build();
 
                                     Mono<AnswerResponseDTO> answerMono = answerRepository.save(newAnswer)
-                                            .map(savedAnswer -> buildAnswerResponse(savedAnswer, answerDTO.getTextResponse()));
+                                            .map(savedAnswer -> answerMapper.mapToAnswerResponse(savedAnswer, answerDTO.getTextResponse()));
 
                                     answerMonos.add(answerMono);
                                 } else if (type == QuestionType.MULTIPLE) {
@@ -146,7 +147,7 @@ public class AnswerService {
                                         Mono<AnswerResponseDTO> answerMono = choiceRepository.findById(choiceId)
                                                 .switchIfEmpty(Mono.error(new ChoiceNotFoundException()))
                                                 .flatMap(choice -> answerRepository.save(newAnswer)
-                                                        .map(savedAnswer -> buildAnswerResponse(savedAnswer, choice.getChoiceText())));
+                                                        .map(savedAnswer -> answerMapper.mapToAnswerResponse(savedAnswer, choice.getChoiceText())));
 
                                         answerMonos.add(answerMono);
                                     }
@@ -167,53 +168,6 @@ public class AnswerService {
     @Transactional
     public Mono<GroupedSurveyAnswerResponseDTO> submitSurveyAnswersGrouped(SurveyAnswerRequestDTO request, Integer userId) {
         return submitSurveyAnswers(request, userId)
-                .map(this::transformToGroupedResponse);
-    }
-
-    private GroupedSurveyAnswerResponseDTO transformToGroupedResponse(SurveyAnswerResponseDTO response) {
-        Map<Integer, List<AnswerResponseDTO>> answersByQuestion = response.getAnswers().stream()
-                .collect(Collectors.groupingBy(AnswerResponseDTO::getQuestionId));
-
-        List<QuestionGroupedAnswerDTO> groupedAnswers = answersByQuestion.entrySet().stream()
-                .map(entry -> {
-                    Integer questionId = entry.getKey();
-                    List<AnswerResponseDTO> answers = entry.getValue();
-
-                    QuestionType questionType;
-                    if (answers.size() > 1) {
-                        questionType = QuestionType.MULTIPLE;
-                    } else if (answers.get(0).getChoiceId() == null) {
-                        questionType = QuestionType.TEXT;
-                        answers.forEach(answer -> answer.setChoiceId(null));
-                    } else {
-                        questionType = QuestionType.SINGLE;
-                    }
-                    
-                    return QuestionGroupedAnswerDTO.builder()
-                            .questionId(questionId)
-                            .questionType(questionType)
-                            .answers(answers)
-                            .build();
-                })
-                .collect(Collectors.toList());
-        
-        return GroupedSurveyAnswerResponseDTO.builder()
-                .surveyId(response.getSurveyId())
-                .userId(response.getUserId())
-                .submittedAt(response.getSubmittedAt())
-                .answers(groupedAnswers)
-                .build();
-    }
-
-    private AnswerResponseDTO buildAnswerResponse(Answer answer, String choiceText) {
-        return AnswerResponseDTO.builder()
-                .id(answer.getId())
-                .questionId(answer.getQuestionId())
-                .userId(answer.getUserId())
-                .choiceId(answer.getChoiceId())
-                .isPublic(answer.getIsPublic())
-                .createdAt(answer.getCreatedAt())
-                .choiceText(choiceText)
-                .build();
+                .map(answerMapper::transformToGroupedResponse);
     }
 } 

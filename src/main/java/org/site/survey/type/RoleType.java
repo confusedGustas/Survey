@@ -1,5 +1,5 @@
 package org.site.survey.type;
 
-public enum Role {
+public enum RoleType {
     USER, ADMIN
 } 

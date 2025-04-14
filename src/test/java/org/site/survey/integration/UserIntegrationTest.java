@@ -10,7 +10,7 @@ import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.service.UserService;
-import org.site.survey.type.Role;
+import org.site.survey.type.RoleType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
@@ -45,7 +45,7 @@ class UserIntegrationTest {
                 .id(1)
                 .username("user1")
                 .email("user1@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -53,7 +53,7 @@ class UserIntegrationTest {
                 .id(2)
                 .username("user2")
                 .email("user2@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -86,7 +86,7 @@ class UserIntegrationTest {
                 .id(1)
                 .username("testuser")
                 .email("test@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -116,7 +116,7 @@ class UserIntegrationTest {
                 .id(1)
                 .username("testuser")
                 .email("test@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -152,7 +152,7 @@ class UserIntegrationTest {
                 .id(3)
                 .username("newuser")
                 .email("newuser@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -198,7 +198,7 @@ class UserIntegrationTest {
                 .id(1)
                 .username("updateduser")
                 .email("updated@example.com")
-                .role(Role.USER)
+                .role(RoleType.USER)
                 .createdAt(LocalDateTime.now())
                 .build();
 

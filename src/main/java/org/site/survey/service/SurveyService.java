@@ -2,13 +2,12 @@ package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
 import org.site.survey.dto.request.SurveyRequestDTO;
-import org.site.survey.dto.response.ChoiceResponseDTO;
-import org.site.survey.dto.response.QuestionResponseDTO;
 import org.site.survey.dto.response.SurveyResponseDTO;
 import org.site.survey.exception.SurveyHasAnswersException;
 import org.site.survey.exception.SurveyNotFoundException;
 import org.site.survey.exception.UnauthorizedSurveyAccessException;
 import org.site.survey.integrity.SurveyDataIntegrity;
+import org.site.survey.mapper.SurveyMapper;
 import org.site.survey.model.Choice;
 import org.site.survey.model.Question;
 import org.site.survey.model.Survey;
@@ -20,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ public class SurveyService {
     private final ChoiceRepository choiceRepository;
     private final AnswerRepository answerRepository;
     private final SurveyDataIntegrity surveyDataIntegrity;
+    private final SurveyMapper surveyMapper;
     
     @Transactional
     public Mono<SurveyResponseDTO> createSurvey(SurveyRequestDTO request, Integer userId) {
@@ -48,14 +49,7 @@ public class SurveyService {
         
         return surveyRepository.save(newSurvey)
                 .flatMap(savedSurvey -> {
-                    SurveyResponseDTO response = SurveyResponseDTO.builder()
-                            .id(savedSurvey.getId())
-                            .title(savedSurvey.getTitle())
-                            .description(savedSurvey.getDescription())
-                            .createdBy(savedSurvey.getCreatedBy())
-                            .createdAt(savedSurvey.getCreatedAt())
-                            .questions(new ArrayList<>())
-                            .build();
+                    SurveyResponseDTO response = surveyMapper.mapToSurveyResponse(savedSurvey, null);
                     
                     if (request.getQuestions() == null || request.getQuestions().isEmpty()) {
                         return Mono.just(response);
@@ -77,19 +71,9 @@ public class SurveyService {
                                 
                                 return questionRepository.save(newQuestion)
                                         .flatMap(savedQuestion -> {
-                                            QuestionResponseDTO questionResponseDTO = QuestionResponseDTO.builder()
-                                                    .id(savedQuestion.getId())
-                                                    .surveyId(savedQuestion.getSurveyId())
-                                                    .content(savedQuestion.getContent())
-                                                    .questionType(savedQuestion.getQuestionTypeEnum())
-                                                    .questionSize(savedQuestion.getQuestionSize())
-                                                    .createdAt(savedQuestion.getCreatedAt())
-                                                    .choices(new ArrayList<>())
-                                                    .build();
-                                            
                                             if (questionRequestDTO.getChoices() == null ||
                                                 questionRequestDTO.getChoices().isEmpty()) {
-                                                return Mono.just(questionResponseDTO);
+                                                return Mono.just(surveyMapper.mapToQuestionResponse(savedQuestion, null));
                                             }
                                             
                                             List<Choice> choices = new ArrayList<>();
@@ -103,16 +87,10 @@ public class SurveyService {
                                             
                                             return Flux.fromIterable(choices)
                                                     .flatMap(choiceRepository::save)
-                                                    .map(savedChoice -> ChoiceResponseDTO.builder()
-                                                            .id(savedChoice.getId())
-                                                            .questionId(savedChoice.getQuestionId())
-                                                            .choiceText(savedChoice.getChoiceText())
-                                                            .build())
+                                                    .map(surveyMapper::mapToChoiceResponse)
                                                     .collectList()
-                                                    .map(choiceResponses -> {
-                                                        questionResponseDTO.setChoices(choiceResponses);
-                                                        return questionResponseDTO;
-                                                    });
+                                                    .map(choiceResponses -> 
+                                                            surveyMapper.mapToQuestionResponse(savedQuestion, choiceResponses));
                                         });
                             })
                             .collectList()
@@ -127,45 +105,13 @@ public class SurveyService {
         surveyDataIntegrity.validateUserId(userId);
         
         return surveyRepository.findByCreatedBy(userId)
-                .flatMap(survey -> {
-                    SurveyResponseDTO response = SurveyResponseDTO.builder()
-                            .id(survey.getId())
-                            .title(survey.getTitle())
-                            .description(survey.getDescription())
-                            .createdBy(survey.getCreatedBy())
-                            .createdAt(survey.getCreatedAt())
-                            .questions(new ArrayList<>())
-                            .build();
-                    
-                    return questionRepository.findBySurveyId(survey.getId())
-                            .flatMap(question -> {
-                                QuestionResponseDTO questionResponseDTO = QuestionResponseDTO.builder()
-                                        .id(question.getId())
-                                        .surveyId(question.getSurveyId())
-                                        .content(question.getContent())
-                                        .questionType(question.getQuestionTypeEnum())
-                                        .questionSize(question.getQuestionSize())
-                                        .createdAt(question.getCreatedAt())
-                                        .build();
-                                
-                                return choiceRepository.findByQuestionId(question.getId())
-                                        .map(choice -> ChoiceResponseDTO.builder()
-                                                .id(choice.getId())
-                                                .questionId(choice.getQuestionId())
-                                                .choiceText(choice.getChoiceText())
-                                                .build())
-                                        .collectList()
-                                        .map(choices -> {
-                                            questionResponseDTO.setChoices(choices);
-                                            return questionResponseDTO;
-                                        });
-                            })
-                            .collectList()
-                            .map(questionResponses -> {
-                                response.setQuestions(questionResponses);
-                                return response;
-                            });
-                });
+                .flatMap(survey -> questionRepository.findBySurveyId(survey.getId())
+                        .flatMap(question -> choiceRepository.findByQuestionId(question.getId())
+                                .map(surveyMapper::mapToChoiceResponse)
+                                .collectList()
+                                .map(choices -> surveyMapper.mapToQuestionResponse(question, choices)))
+                        .collectList()
+                        .map(questionResponses -> surveyMapper.mapToSurveyResponse(survey, questionResponses)));
     }
     
     @Transactional

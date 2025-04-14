@@ -42,7 +42,8 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleGenericException_ReturnsInternalServerError() {
-        Mono<ResponseEntity<Map<String, Object>>> result = exceptionHandler.handleGenericException(exchange);
+        Exception testException = new RuntimeException("Test exception");
+        Mono<ResponseEntity<Map<String, Object>>> result = exceptionHandler.handleGenericException(testException, exchange);
 
         StepVerifier.create(result)
                 .assertNext(responseEntity -> {

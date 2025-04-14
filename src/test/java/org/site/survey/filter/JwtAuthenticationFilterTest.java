@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.site.survey.exception.InvalidTokenException;
+import org.site.survey.model.User;
+import org.site.survey.repository.UserRepository;
 import org.site.survey.service.jwt.JwtService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,12 +25,14 @@ import static org.mockito.Mockito.when;
 class JwtAuthenticationFilterTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
     private JwtService jwtService;
+    private UserRepository userRepository;
     private WebFilterChain filterChain;
 
     @BeforeEach
     void setUp() {
         jwtService = Mockito.mock(JwtService.class);
-        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService);
+        userRepository = Mockito.mock(UserRepository.class);
+        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService, userRepository);
         filterChain = Mockito.mock(WebFilterChain.class);
 
         when(filterChain.filter(any())).thenReturn(Mono.empty());
@@ -74,6 +78,11 @@ class JwtAuthenticationFilterTest {
         when(jwtService.isTokenExpired("valid-token")).thenReturn(false);
         when(jwtService.extractUsername("valid-token")).thenReturn("testuser");
         when(jwtService.extractRole("valid-token")).thenReturn("USER");
+        
+        // Mock the user repository
+        User mockUser = new User();
+        mockUser.setUsername("testuser");
+        when(userRepository.findByUsername("testuser")).thenReturn(Mono.just(mockUser));
 
         WebFilterChain customFilterChain = exchange1 -> Mono.deferContextual(ctx -> {
             if (ctx.hasKey(ReactiveSecurityContextHolder.class.getName())) {

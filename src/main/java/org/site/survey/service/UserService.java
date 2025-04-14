@@ -8,7 +8,8 @@ import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.exception.InvalidCredentialsException;
 import org.site.survey.exception.ServiceException;
 import org.site.survey.integrity.UserDataIntegrity;
-import org.site.survey.type.Role;
+import org.site.survey.mapper.UserMapper;
+import org.site.survey.type.RoleType;
 import org.site.survey.model.User;
 import org.site.survey.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,25 +23,26 @@ import java.time.LocalDateTime;
 public class UserService {
     private final UserRepository userRepository;
     private final UserDataIntegrity userDataIntegrity;
+    private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public Flux<UserResponseDTO> getAllUsers() {
         return userRepository.findAll()
-                .map(this::mapToUserResponse);
+                .map(userMapper::mapToUserResponse);
     }
 
     public Mono<UserResponseDTO> getUserById(Integer id) {
         userDataIntegrity.validateUserId(id);
         return userRepository.findById(id)
                 .switchIfEmpty(Mono.error(new UserNotFoundException()))
-                .map(this::mapToUserResponse);
+                .map(userMapper::mapToUserResponse);
     }
 
     public Mono<UserResponseDTO> getUserByUsername(String username) {
         userDataIntegrity.validateUsername(username);
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new UserNotFoundException()))
-                .map(this::mapToUserResponse);
+                .map(userMapper::mapToUserResponse);
     }
 
     public Mono<UserResponseDTO> createUser(UserRequestDTO userRequestDTO) {
@@ -63,12 +65,12 @@ public class UserService {
                                                 .username(request.getUsername())
                                                 .email(request.getEmail())
                                                 .password(passwordEncoder.encode(request.getPassword()))
-                                                .role(String.valueOf(Role.USER))
+                                                .role(String.valueOf(RoleType.USER))
                                                 .createdAt(LocalDateTime.now())
                                                 .build();
                                         
                                         return userRepository.save(user)
-                                                .map(this::mapToUserResponse);
+                                                .map(userMapper::mapToUserResponse);
                                     });
                         }))
                 .onErrorMap(throwable -> {
@@ -106,7 +108,7 @@ public class UserService {
                                                 existingUser.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
                                             }
                                             return userRepository.save(existingUser)
-                                                    .map(this::mapToUserResponse);
+                                                    .map(userMapper::mapToUserResponse);
                                         });
                             }))
                 .onErrorMap(throwable -> {
@@ -134,15 +136,5 @@ public class UserService {
                     }
                     return Mono.error(new InvalidCredentialsException());
                 });
-    }
-
-    private UserResponseDTO mapToUserResponse(User user) {
-        return UserResponseDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(Role.valueOf(user.getRole()))
-                .createdAt(user.getCreatedAt())
-                .build();
     }
 }
