@@ -7,6 +7,7 @@ import org.site.survey.exception.UserNotFoundException;
 import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.exception.InvalidCredentialsException;
 import org.site.survey.exception.ServiceException;
+import org.site.survey.exception.UnauthorizedUserModificationException;
 import org.site.survey.integrity.UserDataIntegrity;
 import org.site.survey.mapper.UserMapper;
 import org.site.survey.type.RoleType;
@@ -81,9 +82,13 @@ public class UserService {
                 });
     }
 
-    public Mono<UserResponseDTO> updateUser(String username, UserRequestDTO userRequestDTO) {
+    public Mono<UserResponseDTO> updateUser(String username, UserRequestDTO userRequestDTO, String currentUsername) {
         userDataIntegrity.validateUsername(username);
         userDataIntegrity.validateUserRequest(userRequestDTO);
+        
+        if (isAuthorizedToModifyUser(username, currentUsername)) {
+            return Mono.error(new UnauthorizedUserModificationException());
+        }
         
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new UserNotFoundException()))
@@ -113,15 +118,21 @@ public class UserService {
                             }))
                 .onErrorMap(throwable -> {
                     if (throwable instanceof UserNotFoundException || 
-                        throwable instanceof UserAlreadyExistsException) {
+                        throwable instanceof UserAlreadyExistsException ||
+                        throwable instanceof UnauthorizedUserModificationException) {
                         return throwable;
                     }
                     return new ServiceException();
                 });
     }
 
-    public Mono<Object> deleteUser(String username) {
+    public Mono<Object> deleteUser(String username, String currentUsername) {
         userDataIntegrity.validateUsername(username);
+        
+        if (isAuthorizedToModifyUser(username, currentUsername)) {
+            return Mono.error(new UnauthorizedUserModificationException());
+        }
+        
         return userRepository.findByUsername(username)
                 .switchIfEmpty(Mono.error(new UserNotFoundException()))
                 .flatMap(userRepository::delete);
@@ -136,5 +147,9 @@ public class UserService {
                     }
                     return Mono.error(new InvalidCredentialsException());
                 });
+    }
+    
+    private boolean isAuthorizedToModifyUser(String targetUsername, String currentUsername) {
+        return !targetUsername.equals(currentUsername);
     }
 }

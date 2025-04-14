@@ -28,6 +28,10 @@ public class AnswerMapper {
     }
     
     public GroupedSurveyAnswerResponseDTO transformToGroupedResponse(SurveyAnswerResponseDTO response) {
+        if (response == null) {
+            return null;
+        }
+        
         Map<Integer, List<AnswerResponseDTO>> answersByQuestion = response.getAnswers().stream()
                 .collect(Collectors.groupingBy(AnswerResponseDTO::getQuestionId));
 

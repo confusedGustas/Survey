@@ -13,8 +13,20 @@ import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.service.UserService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+
 import java.util.Map;
 
 @RestController
@@ -106,6 +118,7 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "User updated successfully",
             content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - cannot modify other users"),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
@@ -115,7 +128,10 @@ public class UserController {
             @PathVariable String username,
             @Parameter(description = "Updated user details", required = true)
             @RequestBody UserRequestDTO userRequestDTO) {
-        return userService.updateUser(username, userRequestDTO)
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .map(Authentication::getName)
+                .flatMap(currentUsername -> userService.updateUser(username, userRequestDTO, currentUsername))
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
     }
 
@@ -127,6 +143,7 @@ public class UserController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User deleted successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid username"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - cannot delete other users"),
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
@@ -134,7 +151,10 @@ public class UserController {
     public Mono<Map<String, Object>> deleteUser(
             @Parameter(description = "Username of the user to delete", required = true)
             @PathVariable String username) {
-        return userService.deleteUser(username)
+        return ReactiveSecurityContextHolder.getContext()
+                .map(SecurityContext::getAuthentication)
+                .map(Authentication::getName)
+                .flatMap(currentUsername -> userService.deleteUser(username, currentUsername))
                 .then(Mono.just(Map.of(
                     "status", 200,
                     "message", String.format("User with username '%s' was deleted successfully", username)

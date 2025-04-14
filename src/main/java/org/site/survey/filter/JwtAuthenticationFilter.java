@@ -60,7 +60,7 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .switchIfEmpty(Mono.error(new AuthenticationException()))
                 .flatMap(user -> {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        user, // Use the entire User object as the principal
+                        user,
                         null,
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                     );

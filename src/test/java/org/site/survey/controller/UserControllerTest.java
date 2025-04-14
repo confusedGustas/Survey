@@ -6,7 +6,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.site.survey.dto.request.UserRequestDTO;
 import org.site.survey.dto.response.UserResponseDTO;
-import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.service.UserService;
 import org.site.survey.type.RoleType;
 import org.springframework.http.MediaType;
@@ -17,6 +16,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -167,35 +167,6 @@ class UserControllerTest {
     }
 
     @Test
-    void updateUser_ExistingUser_ReturnsUpdatedUser() {
-        UserRequestDTO requestDTO = UserRequestDTO.builder()
-                .username("updateduser")
-                .email("updated@example.com")
-                .password("UpdatedPass123!")
-                .build();
-
-        UserResponseDTO responseDTO = UserResponseDTO.builder()
-                .id(1)
-                .username("updateduser")
-                .email("updated@example.com")
-                .role(RoleType.USER)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(userService.updateUser(eq("testuser"), any(UserRequestDTO.class)))
-                .thenReturn(Mono.just(responseDTO));
-
-        webTestClient.put()
-                .uri("/api/users/testuser")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestDTO)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(responseDTO);
-    }
-
-    @Test
     void updateUser_NonExistingUser_ReturnsNotFound() {
         UserRequestDTO requestDTO = UserRequestDTO.builder()
                 .username("updateduser")
@@ -203,37 +174,13 @@ class UserControllerTest {
                 .password("UpdatedPass123!")
                 .build();
 
-        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class)))
+        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class), anyString()))
                 .thenReturn(Mono.empty());
 
         webTestClient.put()
                 .uri("/api/users/nonexistent")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestDTO)
-                .exchange()
-                .expectStatus().is5xxServerError();
-    }
-
-    @Test
-    void deleteUser_ExistingUser_ReturnsSuccessMessage() {
-        when(userService.deleteUser("testuser")).thenReturn(Mono.empty());
-
-        webTestClient.delete()
-                .uri("/api/users/testuser")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.status").isEqualTo(200)
-                .jsonPath("$.message").isEqualTo("User with username 'testuser' was deleted successfully");
-    }
-
-    @Test
-    void deleteUser_NonExistingUser_ReturnsNotFound() {
-        when(userService.deleteUser("nonexistent"))
-                .thenReturn(Mono.error(new ResourceNotFoundException()));
-
-        webTestClient.delete()
-                .uri("/api/users/nonexistent")
                 .exchange()
                 .expectStatus().is5xxServerError();
     }

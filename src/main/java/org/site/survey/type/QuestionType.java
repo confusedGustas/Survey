@@ -25,7 +25,6 @@ public enum QuestionType {
         try {
             return QuestionType.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            // Default to SINGLE for invalid values
             return SINGLE;
         }
     }

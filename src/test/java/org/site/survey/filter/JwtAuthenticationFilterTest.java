@@ -79,7 +79,6 @@ class JwtAuthenticationFilterTest {
         when(jwtService.extractUsername("valid-token")).thenReturn("testuser");
         when(jwtService.extractRole("valid-token")).thenReturn("USER");
         
-        // Mock the user repository
         User mockUser = new User();
         mockUser.setUsername("testuser");
         when(userRepository.findByUsername("testuser")).thenReturn(Mono.just(mockUser));

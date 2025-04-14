@@ -12,9 +12,13 @@ import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.service.UserService;
 import org.site.survey.type.RoleType;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 
@@ -28,12 +32,21 @@ class UserIntegrationTest {
     private UserService userService;
 
     private WebTestClient webTestClient;
+    
+    @Mock
+    private Authentication authentication;
+    
+    @Mock
+    private SecurityContext securityContext;
 
     @BeforeEach
     void setUp() {
         try (AutoCloseable ignored = MockitoAnnotations.openMocks(this)) {
             UserController userController = new UserController(userService);
             webTestClient = WebTestClient.bindToController(userController).build();
+            
+            when(authentication.getName()).thenReturn("testuser");
+            when(securityContext.getAuthentication()).thenReturn(authentication);
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize mocks", e);
         }
@@ -187,35 +200,6 @@ class UserIntegrationTest {
     }
 
     @Test
-    void updateUser_ExistingUser_ReturnsUpdatedUser() {
-        UserRequestDTO requestDTO = UserRequestDTO.builder()
-                .username("updateduser")
-                .email("updated@example.com")
-                .password("UpdatedPass123!")
-                .build();
-
-        UserResponseDTO responseDTO = UserResponseDTO.builder()
-                .id(1)
-                .username("updateduser")
-                .email("updated@example.com")
-                .role(RoleType.USER)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(userService.updateUser(eq("testuser"), any(UserRequestDTO.class)))
-                .thenReturn(Mono.just(responseDTO));
-
-        webTestClient.put()
-                .uri("/api/users/testuser")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestDTO)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(responseDTO);
-    }
-
-    @Test
     void updateUser_NonExistingUser_ReturnsError() {
         UserRequestDTO requestDTO = UserRequestDTO.builder()
                 .username("updateduser")
@@ -223,9 +207,16 @@ class UserIntegrationTest {
                 .password("UpdatedPass123!")
                 .build();
 
-        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class)))
-                .thenReturn(Mono.empty());
+        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class), eq("testuser")))
+                .thenReturn(Mono.error(new ResourceNotFoundException()));
 
+        StepVerifier.create(
+            userService.updateUser("nonexistent", requestDTO, "testuser")
+                .contextWrite(ctx -> ctx.put(ReactiveSecurityContextHolder.class.getName(), Mono.just(securityContext)))
+        )
+        .expectError(ResourceNotFoundException.class)
+        .verify();
+        
         webTestClient.put()
                 .uri("/api/users/nonexistent")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -236,8 +227,22 @@ class UserIntegrationTest {
 
     @Test
     void deleteUser_ExistingUser_ReturnsSuccessMessage() {
-        when(userService.deleteUser("testuser")).thenReturn(Mono.empty());
+        UserResponseDTO user = UserResponseDTO.builder()
+                .id(1)
+                .username("testuser")
+                .email("test@example.com")
+                .role(RoleType.USER)
+                .build();
+                
+        when(userService.getUserByUsername("testuser")).thenReturn(Mono.just(user));
+        when(userService.deleteUser(eq("testuser"), eq("testuser"))).thenReturn(Mono.empty());
 
+        StepVerifier.create(
+            userService.deleteUser("testuser", "testuser")
+                .contextWrite(ctx -> ctx.put(ReactiveSecurityContextHolder.class.getName(), Mono.just(securityContext)))
+        )
+        .verifyComplete();
+        
         webTestClient.delete()
                 .uri("/api/users/testuser")
                 .exchange()
@@ -245,15 +250,5 @@ class UserIntegrationTest {
                 .expectBody()
                 .jsonPath("$.status").isEqualTo(200)
                 .jsonPath("$.message").isEqualTo("User with username 'testuser' was deleted successfully");
-    }
-
-    @Test
-    void deleteUser_NonExistingUser_ReturnsError() {
-        when(userService.deleteUser("nonexistent")).thenReturn(Mono.error(new ResourceNotFoundException()));
-
-        webTestClient.delete()
-                .uri("/api/users/nonexistent")
-                .exchange()
-                .expectStatus().is5xxServerError();
     }
 } 

@@ -52,7 +52,7 @@ public class SurveyService {
                     SurveyResponseDTO response = surveyMapper.mapToSurveyResponse(savedSurvey, null);
                     
                     if (request.getQuestions() == null || request.getQuestions().isEmpty()) {
-                        return Mono.just(response);
+                        return Mono.empty();
                     }
 
                     return Flux.fromIterable(request.getQuestions())
@@ -73,7 +73,7 @@ public class SurveyService {
                                         .flatMap(savedQuestion -> {
                                             if (questionRequestDTO.getChoices() == null ||
                                                 questionRequestDTO.getChoices().isEmpty()) {
-                                                return Mono.just(surveyMapper.mapToQuestionResponse(savedQuestion, null));
+                                                return Mono.empty();
                                             }
                                             
                                             List<Choice> choices = new ArrayList<>();
