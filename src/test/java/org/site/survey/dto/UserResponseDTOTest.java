@@ -1,6 +1,7 @@
 package org.site.survey.dto;
 
 import org.junit.jupiter.api.Test;
+import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.type.Role;
 import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;

@@ -7,6 +7,8 @@ import org.site.survey.exception.RequestValidationException;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.exception.ServerErrorException;
 import org.site.survey.exception.model.BaseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -21,15 +23,20 @@ import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(WebExchangeBindException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleValidationExceptions(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Map<String, Object>>> handleValidationExceptions(WebExchangeBindException ex, ServerWebExchange exchange) {
+        log.error("Validation exception: ", ex);
         return buildErrorResponse(new RequestValidationException(), exchange);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
     public Mono<ResponseEntity<Map<String, Object>>> handleResponseStatusException(
             ResponseStatusException ex, ServerWebExchange exchange) {
+        
+        log.error("Response status exception: ", ex);
         
         if (ex.getStatusCode().value() == 404) {
             return buildErrorResponse(new ResourceNotFoundException(), exchange);
@@ -46,27 +53,39 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BaseException.class)
     public Mono<ResponseEntity<Map<String, Object>>> handleBaseException(BaseException ex, ServerWebExchange exchange) {
+        log.error("Base exception: ", ex);
         return buildErrorResponse(ex, exchange);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleIllegalArgumentException(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Map<String, Object>>> handleIllegalArgumentException(IllegalArgumentException ex, ServerWebExchange exchange) {
+        log.error("Illegal argument exception: ", ex);
         return buildErrorResponse(new BadRequestException(), exchange);
     }
 
     @ExceptionHandler(NoSuchElementException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleNoSuchElementException(ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Map<String, Object>>> handleNoSuchElementException(NoSuchElementException ex, ServerWebExchange exchange) {
+        log.error("No such element exception: ", ex);
         return buildErrorResponse(new ResourceNotFoundException(), exchange);
     }
 
-    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleSpringAccessDeniedException(ServerWebExchange exchange) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public Mono<ResponseEntity<Map<String, Object>>> handleSpringAccessDeniedException(AccessDeniedException ex, ServerWebExchange exchange) {
+        log.error("Spring access denied exception: ", ex);
         return buildErrorResponse(new AccessDeniedException(), exchange);
     }
 
     @ExceptionHandler(Exception.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleGenericException(ServerWebExchange exchange) {
-        return buildErrorResponse(new ServerErrorException(), exchange);
+    public Mono<ResponseEntity<Map<String, Object>>> handleGenericException(Exception ex, ServerWebExchange exchange) {
+        log.error("Unhandled exception: ", ex);
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("timestamp", LocalDateTime.now());
+        errorMap.put("status", 500);
+        errorMap.put("error", "Internal Server Error");
+        errorMap.put("message", ex.getMessage());
+        errorMap.put("exception", ex.getClass().getCanonicalName());
+        errorMap.put("path", exchange.getRequest().getPath().toString());
+        return Mono.just(new ResponseEntity<>(errorMap, org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     private Mono<ResponseEntity<Map<String, Object>>> buildErrorResponse(BaseException ex, ServerWebExchange exchange) {

@@ -25,6 +25,21 @@ spring:
     password: postgres
     url: r2dbc:postgresql://localhost:5432/survey
     username: postgres
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      continue-on-error: false
+  flyway:
+    enabled: false
+  jackson:
+    serialization:
+      FAIL_ON_EMPTY_BEANS: false
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+      FAIL_ON_IGNORED_PROPERTIES: false
+      FAIL_ON_NULL_FOR_PRIMITIVES: false
+      ACCEPT_EMPTY_STRING_AS_NULL_OBJECT: true
 springdoc:
   swagger-ui:
     config-url: /v3/api-docs/swagger-config
@@ -36,6 +51,20 @@ jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   refresh:
     expiration: '604800000'
-  expiration: '20000'
+  expiration: '900000'
+
 server:
   port: '8080'
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.boot.autoconfigure: INFO
+    org.springframework.web.reactive: DEBUG
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.postgresql: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.site.survey: DEBUG
+    org.springframework.jdbc.core: DEBUG

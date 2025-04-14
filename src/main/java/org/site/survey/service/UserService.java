@@ -1,8 +1,8 @@
 package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
-import org.site.survey.dto.UserRequestDTO;
-import org.site.survey.dto.UserResponseDTO;
+import org.site.survey.dto.request.UserRequestDTO;
+import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.exception.UserNotFoundException;
 import org.site.survey.exception.UserAlreadyExistsException;
 import org.site.survey.exception.InvalidCredentialsException;

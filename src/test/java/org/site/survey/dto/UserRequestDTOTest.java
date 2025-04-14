@@ -1,6 +1,8 @@
 package org.site.survey.dto;
 
 import org.junit.jupiter.api.Test;
+import org.site.survey.dto.request.UserRequestDTO;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class UserRequestDTOTest {

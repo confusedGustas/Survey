@@ -3,6 +3,7 @@ package org.site.survey.filter;
 import lombok.RequiredArgsConstructor;
 import org.site.survey.exception.AuthenticationException;
 import org.site.survey.exception.InvalidTokenException;
+import org.site.survey.repository.UserRepository;
 import org.site.survey.service.jwt.JwtService;
 import org.site.survey.util.SecurityEndpoints;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +25,7 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter implements WebFilter {
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     @NonNull
@@ -54,16 +56,20 @@ public class JwtAuthenticationFilter implements WebFilter {
                 return Mono.error(new InvalidTokenException());
             }
 
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                username,
-                null,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
-            );
+            return userRepository.findByUsername(username)
+                .switchIfEmpty(Mono.error(new AuthenticationException()))
+                .flatMap(user -> {
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        user, // Use the entire User object as the principal
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
 
-            SecurityContext securityContext = new SecurityContextImpl(auth);
+                    SecurityContext securityContext = new SecurityContextImpl(auth);
 
-            return chain.filter(exchange)
-                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
+                    return chain.filter(exchange)
+                        .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
+                });
         }).onErrorResume(e -> {
             if (e instanceof InvalidTokenException) {
                 return Mono.error(e);

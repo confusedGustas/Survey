@@ -1,6 +1,6 @@
 package org.site.survey.integrity;
 
-import org.site.survey.dto.UserRequestDTO;
+import org.site.survey.dto.request.UserRequestDTO;
 import org.site.survey.exception.RequestValidationException;
 import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
