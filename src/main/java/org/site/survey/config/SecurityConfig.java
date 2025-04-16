@@ -44,6 +44,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/users")
                         .permitAll()
+                        .pathMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
                         .anyExchange()
                         .authenticated())
                 .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
