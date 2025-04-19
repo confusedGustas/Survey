@@ -13,7 +13,9 @@ import org.site.survey.dto.request.SurveyRequestDTO;
 import org.site.survey.dto.response.SurveyResponseDTO;
 import org.site.survey.model.User;
 import org.site.survey.service.SurveyService;
+import org.site.survey.util.ResponseUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
@@ -27,6 +29,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/surveys")
@@ -49,14 +53,21 @@ public class SurveyController {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<SurveyResponseDTO> createSurvey(
+    public Mono<ResponseEntity<Object>> createSurvey(
             @Parameter(description = "Survey details", required = true)
             @Valid @RequestBody SurveyRequestDTO request) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(User.class)
-                .flatMap(user -> surveyService.createSurvey(request, user.getId()));
+                .flatMap(user -> surveyService.createSurvey(request, user.getId()))
+                .map(survey -> {
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", survey
+                    );
+                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                });
     }
 
     @GetMapping("/user")
@@ -70,12 +81,15 @@ public class SurveyController {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Flux<SurveyResponseDTO> getAllUserSurveys() {
+    public Mono<ResponseEntity<Object>> getAllUserSurveys() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(User.class)
-                .flatMapMany(user -> surveyService.getAllSurveysByUser(user.getId()));
+                .flatMap(user -> {
+                    Flux<SurveyResponseDTO> surveys = surveyService.getAllSurveysByUser(user.getId());
+                    return ResponseUtils.wrapFluxResponse(surveys, "surveys for user " + user.getId());
+                });
     }
     
     @DeleteMapping("/{id}")

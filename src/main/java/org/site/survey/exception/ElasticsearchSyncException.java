@@ -3,29 +3,25 @@ package org.site.survey.exception;
 import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-public class RequestValidationException extends BaseException {
+public class ElasticsearchSyncException extends BaseException {
     private final String message;
     
-    public RequestValidationException() {
-        this.message = "Request validation failed: Invalid input data";
-    }
-    
-    public RequestValidationException(String message) {
+    public ElasticsearchSyncException(String message) {
         this.message = message;
     }
     
     @Override
     public HttpStatus getStatus() {
-        return HttpStatus.BAD_REQUEST;
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
     @Override
     public String getErrorCode() {
-        return "REQUEST_VALIDATION_ERROR";
+        return "ELASTICSEARCH_SYNC_ERROR";
     }
 
     @Override
     public String getMessage() {
-        return this.message;
+        return message != null ? message : "Elasticsearch synchronization failed";
     }
 } 

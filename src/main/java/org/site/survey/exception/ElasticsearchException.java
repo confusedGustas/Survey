@@ -3,14 +3,10 @@ package org.site.survey.exception;
 import org.site.survey.exception.model.BaseException;
 import org.springframework.http.HttpStatus;
 
-public class RequestValidationException extends BaseException {
+public class ElasticsearchException extends BaseException {
     private final String message;
     
-    public RequestValidationException() {
-        this.message = "Request validation failed: Invalid input data";
-    }
-    
-    public RequestValidationException(String message) {
+    public ElasticsearchException(String message) {
         this.message = message;
     }
     
@@ -21,11 +17,11 @@ public class RequestValidationException extends BaseException {
 
     @Override
     public String getErrorCode() {
-        return "REQUEST_VALIDATION_ERROR";
+        return "ELASTICSEARCH_ERROR";
     }
 
     @Override
     public String getMessage() {
-        return this.message;
+        return message != null ? message : "Elasticsearch operation failed";
     }
 } 

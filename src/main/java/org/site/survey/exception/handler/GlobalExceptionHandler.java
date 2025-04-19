@@ -3,6 +3,9 @@ package org.site.survey.exception.handler;
 import org.site.survey.exception.AccessDeniedException;
 import org.site.survey.exception.AuthenticationException;
 import org.site.survey.exception.BadRequestException;
+import org.site.survey.exception.ElasticsearchConnectionException;
+import org.site.survey.exception.ElasticsearchException;
+import org.site.survey.exception.ElasticsearchSyncException;
 import org.site.survey.exception.InvalidAnswerFormatException;
 import org.site.survey.exception.RequestValidationException;
 import org.site.survey.exception.ResourceNotFoundException;
@@ -11,6 +14,7 @@ import org.site.survey.exception.SurveyNotFoundException;
 import org.site.survey.exception.UnauthorizedSurveyAccessException;
 import org.site.survey.exception.UnauthorizedUserModificationException;
 import org.site.survey.exception.model.BaseException;
+import org.site.survey.exception.model.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -121,17 +125,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidAnswerFormatException.class)
-    public Mono<ResponseEntity<Map<String, Object>>> handleInvalidAnswerFormatException(
-            InvalidAnswerFormatException ex, ServerWebExchange exchange) {
-        log.error("Invalid answer format exception: ", ex);
-        Map<String, Object> errorMap = new HashMap<>();
-        errorMap.put("timestamp", LocalDateTime.now());
-        errorMap.put("status", HttpStatus.BAD_REQUEST.value());
-        errorMap.put("error", HttpStatus.BAD_REQUEST.getReasonPhrase());
-        errorMap.put("errorCode", ex.getErrorCode());
-        errorMap.put("message", ex.getMessage());
-        errorMap.put("path", exchange.getRequest().getPath().toString());
-        return Mono.just(new ResponseEntity<>(errorMap, HttpStatus.BAD_REQUEST));
+    public ResponseEntity<ErrorResponse> handleInvalidAnswerFormatException(InvalidAnswerFormatException ex) {
+        log.error("InvalidAnswerFormatException: {}", ex.getMessage());
+        return ErrorResponse.toResponseEntity(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedSurveyAccessException.class)
@@ -157,6 +153,24 @@ public class GlobalExceptionHandler {
         }
         
         return handleGenericException(ex, exchange);
+    }
+
+    @ExceptionHandler(ElasticsearchException.class)
+    public ResponseEntity<ErrorResponse> handleElasticsearchException(ElasticsearchException ex) {
+        log.error("ElasticsearchException: {}", ex.getMessage());
+        return ErrorResponse.toResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "ELASTICSEARCH_ERROR", ex.getMessage());
+    }
+    
+    @ExceptionHandler(ElasticsearchConnectionException.class)
+    public ResponseEntity<ErrorResponse> handleElasticsearchConnectionException(ElasticsearchConnectionException ex) {
+        log.error("ElasticsearchConnectionException: {}", ex.getMessage());
+        return ErrorResponse.toResponseEntity(HttpStatus.SERVICE_UNAVAILABLE, "ELASTICSEARCH_CONNECTION_ERROR", ex.getMessage());
+    }
+    
+    @ExceptionHandler(ElasticsearchSyncException.class)
+    public ResponseEntity<ErrorResponse> handleElasticsearchSyncException(ElasticsearchSyncException ex) {
+        log.error("ElasticsearchSyncException: {}", ex.getMessage());
+        return ErrorResponse.toResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "ELASTICSEARCH_SYNC_ERROR", ex.getMessage());
     }
 
     private Mono<ResponseEntity<Map<String, Object>>> buildErrorResponse(BaseException ex, ServerWebExchange exchange) {

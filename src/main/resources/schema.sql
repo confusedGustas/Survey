@@ -45,12 +45,10 @@ CREATE TABLE IF NOT EXISTS answers (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert admin and regular users
 INSERT INTO users (username, email, password, role) 
 VALUES ('test', 'testadmin@example.com', '$2a$12$fv.s2O/vDzNKwGoowAAAx.iQ6MyWCZU1ccuz7G/hejbE.jclTPgRu', 'ADMIN')
 ON CONFLICT (username) DO NOTHING;
 
--- More users (same hashed password for simplicity - in real app would be different)
 INSERT INTO users (username, email, password, role) VALUES
 ('user1', 'user1@example.com', '$2a$12$fv.s2O/vDzNKwGoowAAAx.iQ6MyWCZU1ccuz7G/hejbE.jclTPgRu', 'USER'),
 ('user2', 'user2@example.com', '$2a$12$fv.s2O/vDzNKwGoowAAAx.iQ6MyWCZU1ccuz7G/hejbE.jclTPgRu', 'USER'),
@@ -87,8 +85,6 @@ INSERT INTO surveys (title, description, created_by) VALUES
 ('Reading Habits Survey', 'Share your reading preferences and habits', 8),
 ('Shopping Experience Survey', 'Evaluate your online shopping experience', 1);
 
--- Questions
--- Survey 1: Customer Satisfaction Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (1, 'How satisfied are you with our customer service?', 'SINGLE', 5),
 (1, 'How likely are you to recommend our company to others?', 'SINGLE', 10),
@@ -96,7 +92,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (1, 'How would you rate the response time of our support team?', 'SINGLE', 5),
 (1, 'Which of our departments did you interact with?', 'MULTIPLE', NULL);
 
--- Survey 2: Employee Engagement Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (2, 'How satisfied are you with your current role?', 'SINGLE', 5),
 (2, 'Do you feel your work is valued by management?', 'SINGLE', 5),
@@ -104,7 +99,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (2, 'How would you rate the company culture?', 'SINGLE', 5),
 (2, 'Which company benefits do you value most?', 'MULTIPLE', NULL);
 
--- Survey 3: Product Feedback Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (3, 'How would you rate the product quality?', 'SINGLE', 5),
 (3, 'Does the product meet your expectations?', 'SINGLE', 5),
@@ -112,7 +106,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (3, 'How would you rate the value for money?', 'SINGLE', 5),
 (3, 'Which product feature do you use most frequently?', 'MULTIPLE', NULL);
 
--- Survey 4: Website Usability Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (4, 'How easy is it to navigate our website?', 'SINGLE', 5),
 (4, 'Did you find what you were looking for?', 'SINGLE', NULL),

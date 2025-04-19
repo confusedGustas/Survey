@@ -56,7 +56,7 @@ spring:
 
 # Set to false to disable all Elasticsearch features
 elasticsearch:
-  enabled: false
+  enabled: true
     
 springdoc:
   swagger-ui:

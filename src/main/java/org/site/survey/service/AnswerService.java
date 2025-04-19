@@ -1,6 +1,7 @@
 package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.site.survey.dto.request.QuestionAnswerDTO;
 import org.site.survey.dto.request.SurveyAnswerRequestDTO;
 import org.site.survey.dto.response.AnswerResponseDTO;
@@ -18,10 +19,12 @@ import org.site.survey.repository.ChoiceRepository;
 import org.site.survey.repository.QuestionRepository;
 import org.site.survey.repository.SurveyRepository;
 import org.site.survey.type.QuestionType;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,15 +33,48 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class AnswerService {
-
+    
     private final AnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
     private final ChoiceRepository choiceRepository;
     private final SurveyRepository surveyRepository;
     private final AnswerMapper answerMapper;
-
+    private ElasticsearchSyncService elasticsearchSyncService;
+    
+    @Autowired
+    public AnswerService(
+            AnswerRepository answerRepository,
+            QuestionRepository questionRepository,
+            ChoiceRepository choiceRepository,
+            SurveyRepository surveyRepository,
+            AnswerMapper answerMapper) {
+        this.answerRepository = answerRepository;
+        this.questionRepository = questionRepository;
+        this.choiceRepository = choiceRepository;
+        this.surveyRepository = surveyRepository;
+        this.answerMapper = answerMapper;
+    }
+    
+    @Autowired(required = false)
+    public void setElasticsearchSyncService(ElasticsearchSyncService elasticsearchSyncService) {
+        this.elasticsearchSyncService = elasticsearchSyncService;
+        log.info("ElasticsearchSyncService autowired successfully in AnswerService");
+    }
+    
+    private void syncWithElasticsearch() {
+        if (elasticsearchSyncService != null) {
+            log.debug("Syncing with Elasticsearch after answer submission");
+            elasticsearchSyncService.syncAllData()
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    null,
+                    e -> log.error("Error syncing with Elasticsearch: {}", e.getMessage())
+                );
+        }
+    }
+    
     @Transactional
     public Mono<SurveyAnswerResponseDTO> submitSurveyAnswers(SurveyAnswerRequestDTO request, Integer userId) {
         if (request.getSurveyId() == 999) {
@@ -89,9 +125,9 @@ public class AnswerService {
                                 if (question == null) {
                                     return Mono.error(new QuestionNotFoundException());
                                 }
-
+                                
                                 QuestionType type = question.getQuestionTypeEnum();
-
+                                
                                 if (type == QuestionType.SINGLE) {
                                     if (answer.getChoiceId() == null) {
                                         return Mono.error(new InvalidAnswerFormatException(
@@ -123,7 +159,7 @@ public class AnswerService {
                             }
 
                             List<Mono<AnswerResponseDTO>> answerMonos = new ArrayList<>();
-
+                            
                             for (QuestionAnswerDTO answerDTO : request.getAnswers()) {
                                 Question question = questionMap.get(answerDTO.getQuestionId());
                                 QuestionType type = question.getQuestionTypeEnum();
@@ -151,10 +187,10 @@ public class AnswerService {
                                             .isPublic(true)
                                             .createdAt(LocalDateTime.now())
                                             .build();
-
+                                            
                                     Mono<AnswerResponseDTO> answerMono = answerRepository.save(newAnswer)
                                             .map(savedAnswer -> answerMapper.mapToAnswerResponse(savedAnswer, answerDTO.getTextResponse()));
-
+                                            
                                     answerMonos.add(answerMono);
                                 } else if (type == QuestionType.MULTIPLE) {
                                     for (Integer choiceId : answerDTO.getChoiceIds()) {
@@ -184,7 +220,8 @@ public class AnswerService {
                                             .submittedAt(LocalDateTime.now())
                                             .answers(answers)
                                             .build());
-                        }));
+                        }))
+                .doOnSuccess(result -> syncWithElasticsearch());
     }
 
     @Transactional

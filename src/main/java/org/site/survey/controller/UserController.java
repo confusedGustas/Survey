@@ -12,7 +12,9 @@ import org.site.survey.dto.request.UserRequestDTO;
 import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.service.UserService;
+import org.site.survey.util.ResponseUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -48,15 +51,8 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Object> getAllUsers() {
-        return userService.getAllUsers()
-                .collectList()
-                .map(users -> {
-                    if (users.isEmpty()) {
-                        return Map.of("message", "User list is empty");
-                    }
-                    return users;
-                });
+    public Mono<ResponseEntity<Object>> getAllUsers() {
+        return ResponseUtils.wrapFluxResponse(userService.getAllUsers(), "users");
     }
 
     @GetMapping("/{id}")
@@ -71,9 +67,16 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<UserResponseDTO> getUserById(@PathVariable Integer id) {
+    public Mono<ResponseEntity<Object>> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()))
+                .map(user -> {
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", user
+                    );
+                    return ResponseEntity.ok(response);
+                });
     }
 
     @GetMapping("/username/{username}")
@@ -88,9 +91,16 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<UserResponseDTO> getUserByUsername(@PathVariable String username) {
+    public Mono<ResponseEntity<Object>> getUserByUsername(@PathVariable String username) {
         return userService.getUserByUsername(username)
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()))
+                .map(user -> {
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", user
+                    );
+                    return ResponseEntity.ok(response);
+                });
     }
 
     @PostMapping
@@ -105,8 +115,15 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<UserResponseDTO> createUser(@RequestBody UserRequestDTO userRequestDTO) {
-        return userService.createUser(userRequestDTO);
+    public Mono<ResponseEntity<Object>> createUser(@RequestBody UserRequestDTO userRequestDTO) {
+        return userService.createUser(userRequestDTO)
+                .map(user -> {
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", user
+                    );
+                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                });
     }
 
     @PutMapping("/{username}")
@@ -123,7 +140,7 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<UserResponseDTO> updateUser(
+    public Mono<ResponseEntity<Object>> updateUser(
             @Parameter(description = "Username of the user to update", required = true)
             @PathVariable String username,
             @Parameter(description = "Updated user details", required = true)
@@ -132,7 +149,14 @@ public class UserController {
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getName)
                 .flatMap(currentUsername -> userService.updateUser(username, userRequestDTO, currentUsername))
-                .switchIfEmpty(Mono.error(new ResourceNotFoundException()));
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException()))
+                .map(user -> {
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", user
+                    );
+                    return ResponseEntity.ok(response);
+                });
     }
 
     @DeleteMapping("/{username}")
@@ -148,16 +172,16 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<Map<String, Object>> deleteUser(
+    public Mono<ResponseEntity<Object>> deleteUser(
             @Parameter(description = "Username of the user to delete", required = true)
             @PathVariable String username) {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getName)
                 .flatMap(currentUsername -> userService.deleteUser(username, currentUsername))
-                .then(Mono.just(Map.of(
-                    "status", 200,
+                .then(Mono.just(ResponseEntity.ok(Map.of(
+                    "status", "success",
                     "message", String.format("User with username '%s' was deleted successfully", username)
-                )));
+                ))));
     }
 }

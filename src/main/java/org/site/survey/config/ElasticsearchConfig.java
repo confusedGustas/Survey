@@ -1,20 +1,16 @@
 package org.site.survey.config;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchConfiguration;
 import org.springframework.data.elasticsearch.repository.config.EnableReactiveElasticsearchRepositories;
-import org.springframework.beans.factory.annotation.Value;
 import java.time.Duration;
-import lombok.extern.slf4j.Slf4j;
 
-/**
- * Elasticsearch configuration that is only active when elasticsearch.enabled=true
- */
 @Configuration
-@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true")
 @EnableReactiveElasticsearchRepositories(basePackages = "org.site.survey.repository.elasticsearch")
 @Slf4j
 public class ElasticsearchConfig extends ReactiveElasticsearchConfiguration {

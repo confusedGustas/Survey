@@ -15,17 +15,20 @@ import org.site.survey.repository.AnswerRepository;
 import org.site.survey.repository.ChoiceRepository;
 import org.site.survey.repository.QuestionRepository;
 import org.site.survey.repository.SurveyRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class SurveyService {
     
     private final SurveyRepository surveyRepository;
@@ -34,6 +37,41 @@ public class SurveyService {
     private final AnswerRepository answerRepository;
     private final SurveyDataIntegrity surveyDataIntegrity;
     private final SurveyMapper surveyMapper;
+    private ElasticsearchSyncService elasticsearchSyncService;
+    
+    @Autowired
+    public SurveyService(
+            SurveyRepository surveyRepository,
+            QuestionRepository questionRepository,
+            ChoiceRepository choiceRepository,
+            AnswerRepository answerRepository,
+            SurveyDataIntegrity surveyDataIntegrity,
+            SurveyMapper surveyMapper) {
+        this.surveyRepository = surveyRepository;
+        this.questionRepository = questionRepository;
+        this.choiceRepository = choiceRepository;
+        this.answerRepository = answerRepository;
+        this.surveyDataIntegrity = surveyDataIntegrity;
+        this.surveyMapper = surveyMapper;
+    }
+    
+    @Autowired(required = false)
+    public void setElasticsearchSyncService(ElasticsearchSyncService elasticsearchSyncService) {
+        this.elasticsearchSyncService = elasticsearchSyncService;
+        log.info("ElasticsearchSyncService autowired successfully");
+    }
+    
+    private void syncWithElasticsearch() {
+        if (elasticsearchSyncService != null) {
+            log.debug("Syncing with Elasticsearch after operation");
+            elasticsearchSyncService.syncAllData()
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                    null,
+                    e -> log.error("Error syncing with Elasticsearch: {}", e.getMessage())
+                );
+        }
+    }
     
     @Transactional
     public Mono<SurveyResponseDTO> createSurvey(SurveyRequestDTO request, Integer userId) {
@@ -98,7 +136,8 @@ public class SurveyService {
                                 response.setQuestions(questionResponses);
                                 return response;
                             });
-                });
+                })
+                .doOnSuccess(result -> syncWithElasticsearch());
     }
     
     public Flux<SurveyResponseDTO> getAllSurveysByUser(Integer userId) {
@@ -146,6 +185,7 @@ public class SurveyService {
                                                     .then(surveyRepository.delete(survey));
                                         });
                             });
-                });
+                })
+                .doOnSuccess(result -> syncWithElasticsearch());
     }
 } 
