@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
 @Repository
-@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true")
 public interface SurveyElasticsearchRepository extends ReactiveElasticsearchRepository<SurveyDocument, Integer> {
     Flux<SurveyDocument> findByTitleContainingOrDescriptionContaining(String title, String description);
 } 

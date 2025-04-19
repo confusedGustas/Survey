@@ -1,6 +1,5 @@
 package org.site.survey.service;
 
-import lombok.RequiredArgsConstructor;
 import org.site.survey.dto.request.SurveyRequestDTO;
 import org.site.survey.dto.response.SurveyResponseDTO;
 import org.site.survey.exception.SurveyHasAnswersException;
@@ -22,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,10 +64,10 @@ public class SurveyService {
             log.debug("Syncing with Elasticsearch after operation");
             elasticsearchSyncService.syncAllData()
                 .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(
-                    null,
-                    e -> log.error("Error syncing with Elasticsearch: {}", e.getMessage())
-                );
+                .doOnSuccess(v -> log.debug("Elasticsearch sync completed successfully"))
+                .doOnError(e -> log.error("Error syncing with Elasticsearch: {}", e.getMessage()))
+                .onErrorComplete()
+                .subscribe();
         }
     }
     

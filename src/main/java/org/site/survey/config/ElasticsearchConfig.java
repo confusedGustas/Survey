@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchConfiguration;
 import org.springframework.data.elasticsearch.repository.config.EnableReactiveElasticsearchRepositories;
+import org.springframework.lang.NonNull;
 import java.time.Duration;
 
 @Configuration
@@ -25,10 +26,11 @@ public class ElasticsearchConfig extends ReactiveElasticsearchConfiguration {
     private Duration socketTimeout;
 
     @Override
+    @NonNull
     public ClientConfiguration clientConfiguration() {
         log.info("Configuring Elasticsearch client with URL: {}", elasticsearchUrl);
         return ClientConfiguration.builder()
-                .connectedTo(elasticsearchUrl.replace("http://", ""))
+                .connectedTo(elasticsearchUrl.startsWith("http://") ? elasticsearchUrl.substring(7) : elasticsearchUrl)
                 .withConnectTimeout(connectTimeout)
                 .withSocketTimeout(socketTimeout)
                 .build();

@@ -44,17 +44,7 @@ spring:
     uris: http://localhost:9200
     connection-timeout: 10s
     socket-timeout: 30s
-    username: 
-    password: 
-    rest:
-      read-timeout: 30s
-    data:
-      client:
-        reactive:
-          max-in-memory-size: 100MB
-          endpoints: localhost:9200
 
-# Set to false to disable all Elasticsearch features
 elasticsearch:
   enabled: true
     

@@ -4,10 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.site.survey.dto.StatisticsDTO;
 import org.site.survey.dto.response.SearchResultDTO;
 import org.site.survey.integrity.ElasticsearchDataIntegrity;
+import org.site.survey.mapper.ElasticsearchMapper;
 import org.site.survey.model.Answer;
-import org.site.survey.model.Choice;
 import org.site.survey.model.Question;
-import org.site.survey.model.Survey;
 import org.site.survey.model.elasticsearch.AnswerDocument;
 import org.site.survey.model.elasticsearch.ChoiceDocument;
 import org.site.survey.model.elasticsearch.QuestionDocument;
@@ -28,6 +27,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +43,7 @@ public class AdminService {
     private final AnswerRepository answerRepository;
     private final UserRepository userRepository;
     private final ElasticsearchDataIntegrity elasticsearchDataIntegrity;
+    private final ElasticsearchMapper elasticsearchMapper;
 
     private SurveyElasticsearchRepository surveyElasticsearchRepository;
     private QuestionElasticsearchRepository questionElasticsearchRepository;
@@ -56,13 +57,15 @@ public class AdminService {
             ChoiceRepository choiceRepository,
             AnswerRepository answerRepository,
             UserRepository userRepository,
-            ElasticsearchDataIntegrity elasticsearchDataIntegrity) {
+            ElasticsearchDataIntegrity elasticsearchDataIntegrity,
+            ElasticsearchMapper elasticsearchMapper) {
         this.surveyRepository = surveyRepository;
         this.questionRepository = questionRepository;
         this.choiceRepository = choiceRepository;
         this.answerRepository = answerRepository;
         this.userRepository = userRepository;
         this.elasticsearchDataIntegrity = elasticsearchDataIntegrity;
+        this.elasticsearchMapper = elasticsearchMapper;
     }
     
     @Autowired(required = false)
@@ -153,22 +156,11 @@ public class AdminService {
                 (survey.getDescription() != null && survey.getDescription().toLowerCase().contains(query.toLowerCase())))
             .flatMap(survey -> questionRepository.findBySurveyId(survey.getId())
                 .count()
-                .map(count -> mapToSurveyDocument(survey, count.intValue())))
+                .map(count -> elasticsearchMapper.mapToSurveyDocument(survey, count.intValue())))
             .onErrorResume(e -> {
                 log.error("Error in database fallback search for surveys", e);
                 return Flux.empty();
             });
-    }
-    
-    private SurveyDocument mapToSurveyDocument(Survey survey, int questionCount) {
-        SurveyDocument doc = new SurveyDocument();
-        doc.setId(survey.getId());
-        doc.setTitle(survey.getTitle());
-        doc.setDescription(survey.getDescription());
-        doc.setQuestionSize(questionCount);
-        doc.setCreatedBy(survey.getCreatedBy());
-        doc.setCreatedAt(survey.getCreatedAt());
-        return doc;
     }
     
     public Flux<QuestionDocument> searchQuestions(String query) {
@@ -197,21 +189,11 @@ public class AdminService {
             .filter(question -> 
                 question.getContent() != null && 
                 question.getContent().toLowerCase().contains(query.toLowerCase()))
-            .map(this::mapToQuestionDocument)
+            .map(elasticsearchMapper::mapToQuestionDocument)
             .onErrorResume(e -> {
                 log.error("Error in database fallback search for questions", e);
                 return Flux.empty();
             });
-    }
-    
-    private QuestionDocument mapToQuestionDocument(Question question) {
-        QuestionDocument doc = new QuestionDocument();
-        doc.setId(question.getId());
-        doc.setSurveyId(question.getSurveyId());
-        doc.setContent(question.getContent());
-        doc.setQuestionType(question.getQuestionType());
-        doc.setCreatedAt(question.getCreatedAt());
-        return doc;
     }
     
     public Flux<ChoiceDocument> searchChoices(String query) {
@@ -240,19 +222,11 @@ public class AdminService {
             .filter(choice -> 
                 choice.getChoiceText() != null && 
                 choice.getChoiceText().toLowerCase().contains(query.toLowerCase()))
-            .map(this::mapToChoiceDocument)
+            .map(elasticsearchMapper::mapToChoiceDocument)
             .onErrorResume(e -> {
                 log.error("Error in database fallback search for choices", e);
                 return Flux.empty();
             });
-    }
-    
-    private ChoiceDocument mapToChoiceDocument(Choice choice) {
-        ChoiceDocument doc = new ChoiceDocument();
-        doc.setId(choice.getId());
-        doc.setQuestionId(choice.getQuestionId());
-        doc.setChoiceText(choice.getChoiceText());
-        return doc;
     }
     
     public Flux<AnswerDocument> searchAnswersByQuestionId(Integer questionId) {
@@ -401,7 +375,7 @@ public class AdminService {
                 .onErrorResume(e -> {
                     log.error("Error searching questions by survey ID in Elasticsearch", e);
                     return questionRepository.findBySurveyId(surveyId)
-                        .map(this::mapToQuestionDocument)
+                        .map(elasticsearchMapper::mapToQuestionDocument)
                         .onErrorResume(ex -> {
                             log.error("Error in database search for questions by survey ID", ex);
                             return Flux.empty();
@@ -410,7 +384,7 @@ public class AdminService {
         }
         
         return questionRepository.findBySurveyId(surveyId)
-            .map(this::mapToQuestionDocument)
+            .map(elasticsearchMapper::mapToQuestionDocument)
             .onErrorResume(e -> {
                 log.error("Error in database search for questions by survey ID", e);
                 return Flux.empty();
@@ -442,7 +416,7 @@ public class AdminService {
         return questionRepository.findAll()
             .filter(question -> question.getQuestionType() != null && 
                     question.getQuestionType().equalsIgnoreCase(questionType))
-            .map(this::mapToQuestionDocument)
+            .map(elasticsearchMapper::mapToQuestionDocument)
             .onErrorResume(e -> {
                 log.error("Error in database fallback search for questions by type", e);
                 return Flux.empty();
@@ -463,7 +437,7 @@ public class AdminService {
                 .onErrorResume(e -> {
                     log.error("Error searching choices by question ID in Elasticsearch", e);
                     return choiceRepository.findByQuestionId(questionId)
-                        .map(this::mapToChoiceDocument)
+                        .map(elasticsearchMapper::mapToChoiceDocument)
                         .onErrorResume(ex -> {
                             log.error("Error in database search for choices by question ID", ex);
                             return Flux.empty();
@@ -472,7 +446,7 @@ public class AdminService {
         }
         
         return choiceRepository.findByQuestionId(questionId)
-            .map(this::mapToChoiceDocument)
+            .map(elasticsearchMapper::mapToChoiceDocument)
             .onErrorResume(e -> {
                 log.error("Error in database search for choices by question ID", e);
                 return Flux.empty();
@@ -483,21 +457,10 @@ public class AdminService {
         log.debug("Falling back to database search for answers");
         return answerRepository.findAll()
             .filter(filter)
-            .map(this::mapToAnswerDocument)
+            .map(elasticsearchMapper::mapToAnswerDocument)
             .onErrorResume(e -> {
                 log.error("Error in database fallback search for answers", e);
                 return Flux.empty();
             });
     }
-    
-    private AnswerDocument mapToAnswerDocument(Answer answer) {
-        AnswerDocument doc = new AnswerDocument();
-        doc.setId(answer.getId());
-        doc.setQuestionId(answer.getQuestionId());
-        doc.setUserId(answer.getUserId());
-        doc.setChoiceId(answer.getChoiceId());
-        doc.setIsPublic(answer.getIsPublic());
-        doc.setCreatedAt(answer.getCreatedAt());
-        return doc;
-    }
-} 
+}

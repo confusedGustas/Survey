@@ -62,7 +62,6 @@ INSERT INTO users (username, email, password, role) VALUES
 ('john_smith', 'john@example.com', '$2a$12$fv.s2O/vDzNKwGoowAAAx.iQ6MyWCZU1ccuz7G/hejbE.jclTPgRu', 'USER')
 ON CONFLICT (username) DO NOTHING;
 
--- Surveys
 INSERT INTO surveys (title, description, created_by) VALUES
 ('Customer Satisfaction Survey', 'Help us improve our customer service', 1),
 ('Employee Engagement Survey', 'Annual employee satisfaction assessment', 1),
@@ -113,7 +112,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (4, 'How would you rate the website design?', 'SINGLE', 5),
 (4, 'Which website features do you find most useful?', 'MULTIPLE', NULL);
 
--- Survey 5: Market Research Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (5, 'How often do you purchase products in this category?', 'MULTIPLE', NULL),
 (5, 'What factors influence your purchasing decisions?', 'MULTIPLE', NULL),
@@ -121,8 +119,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (5, 'How much would you be willing to pay for this product?', 'MULTIPLE', NULL),
 (5, 'Which brands do you currently use?', 'MULTIPLE', NULL);
 
--- More questions for other surveys (adding 5 more surveys with 5 questions each)
--- Survey 6: Event Feedback Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (6, 'How would you rate the overall event?', 'SINGLE', 5),
 (6, 'Were the speakers engaging?', 'SINGLE', 5),
@@ -130,7 +126,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (6, 'How was the venue?', 'SINGLE', 5),
 (6, 'Which session did you find most valuable?', 'MULTIPLE', NULL);
 
--- Survey 7: Healthcare Experience Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (7, 'How would you rate your overall experience?', 'SINGLE', 5),
 (7, 'Was the staff courteous and helpful?', 'SINGLE', 5),
@@ -138,7 +133,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (7, 'How long did you wait before seeing a doctor?', 'MULTIPLE', NULL),
 (7, 'Would you return to this facility for future care?', 'SINGLE', NULL);
 
--- Survey 8: Software Usability Survey
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (8, 'How intuitive was the software to use?', 'SINGLE', 5),
 (8, 'Did you encounter any bugs or errors?', 'SINGLE', NULL),
@@ -146,7 +140,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (8, 'How would you rate the software performance?', 'SINGLE', 5),
 (8, 'Which software feature do you use most often?', 'MULTIPLE', NULL);
 
--- Survey 9: Educational Program Evaluation
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (9, 'How would you rate the quality of instruction?', 'SINGLE', 5),
 (9, 'Was the course content relevant to your needs?', 'SINGLE', 5),
@@ -154,7 +147,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (9, 'How would you rate the course materials?', 'SINGLE', 5),
 (9, 'Which learning format do you prefer?', 'MULTIPLE', NULL);
 
--- Survey 10: Restaurant Dining Experience
 INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (10, 'How would you rate the food quality?', 'SINGLE', 5),
 (10, 'Was the service prompt and courteous?', 'SINGLE', 5),
@@ -162,11 +154,6 @@ INSERT INTO questions (survey_id, content, question_type, question_size) VALUES
 (10, 'How would you rate the restaurant ambiance?', 'SINGLE', 5),
 (10, 'What type of cuisine do you prefer?', 'MULTIPLE', NULL);
 
--- Continuing with more questions for additional surveys
--- Adding 50 more questions across the remaining 10 surveys (5 each)
-
--- Choices for multiple choice questions
--- Survey 1, Question 5
 INSERT INTO choices (question_id, choice_text) VALUES
 (5, 'Sales'),
 (5, 'Customer Support'),
@@ -174,7 +161,6 @@ INSERT INTO choices (question_id, choice_text) VALUES
 (5, 'Billing Department'),
 (5, 'Product Development');
 
--- Survey 2, Question 5
 INSERT INTO choices (question_id, choice_text) VALUES
 (10, 'Health Insurance'),
 (10, 'Retirement Plan'),
@@ -413,7 +399,6 @@ INSERT INTO answers (question_id, user_id, choice_id, is_public) VALUES
 (59, 3, NULL, true),
 (60, 3, 74, false);
 
--- Add choices for questions 51-60 before answering them
 INSERT INTO choices (question_id, choice_text) VALUES
 (51, 'Several times a year'),
 (51, 'Once a year'),

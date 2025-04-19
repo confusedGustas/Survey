@@ -2,13 +2,17 @@ package org.site.survey.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.site.survey.model.*;
-import org.site.survey.model.elasticsearch.*;
-import org.site.survey.repository.*;
-import org.site.survey.repository.elasticsearch.*;
+import org.site.survey.mapper.ElasticsearchMapper;
+import org.site.survey.repository.AnswerRepository;
+import org.site.survey.repository.ChoiceRepository;
+import org.site.survey.repository.QuestionRepository;
+import org.site.survey.repository.SurveyRepository;
+import org.site.survey.repository.elasticsearch.AnswerElasticsearchRepository;
+import org.site.survey.repository.elasticsearch.ChoiceElasticsearchRepository;
+import org.site.survey.repository.elasticsearch.QuestionElasticsearchRepository;
+import org.site.survey.repository.elasticsearch.SurveyElasticsearchRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,7 +20,7 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "elasticsearch.enabled", havingValue = "true")
 @ConditionalOnBean({SurveyElasticsearchRepository.class, QuestionElasticsearchRepository.class, 
                     ChoiceElasticsearchRepository.class, AnswerElasticsearchRepository.class})
 public class ElasticsearchSyncService {
@@ -30,6 +34,7 @@ public class ElasticsearchSyncService {
     private final QuestionElasticsearchRepository questionElasticsearchRepository;
     private final ChoiceElasticsearchRepository choiceElasticsearchRepository;
     private final AnswerElasticsearchRepository answerElasticsearchRepository;
+    private final ElasticsearchMapper elasticsearchMapper;
     
     public Mono<Void> syncAllData() {
         log.info("Starting data synchronization with Elasticsearch");
@@ -48,7 +53,7 @@ public class ElasticsearchSyncService {
                     log.error("Error fetching surveys from database", e);
                     return Flux.empty();
                 })
-                .map(this::mapToSurveyDocument)
+                .map(survey -> elasticsearchMapper.mapToSurveyDocument(survey, 0))
                 .flatMap(doc -> surveyElasticsearchRepository.save(doc)
                         .onErrorResume(e -> {
                             log.error("Error saving survey to Elasticsearch: {}", doc.getId(), e);
@@ -64,7 +69,7 @@ public class ElasticsearchSyncService {
                     log.error("Error fetching questions from database", e);
                     return Flux.empty();
                 })
-                .map(this::mapToQuestionDocument)
+                .map(elasticsearchMapper::mapToQuestionDocument)
                 .flatMap(doc -> questionElasticsearchRepository.save(doc)
                         .onErrorResume(e -> {
                             log.error("Error saving question to Elasticsearch: {}", doc.getId(), e);
@@ -80,7 +85,7 @@ public class ElasticsearchSyncService {
                     log.error("Error fetching choices from database", e);
                     return Flux.empty();
                 })
-                .map(this::mapToChoiceDocument)
+                .map(elasticsearchMapper::mapToChoiceDocument)
                 .flatMap(doc -> choiceElasticsearchRepository.save(doc)
                         .onErrorResume(e -> {
                             log.error("Error saving choice to Elasticsearch: {}", doc.getId(), e);
@@ -96,56 +101,12 @@ public class ElasticsearchSyncService {
                     log.error("Error fetching answers from database", e);
                     return Flux.empty();
                 })
-                .map(this::mapToAnswerDocument)
+                .map(elasticsearchMapper::mapToAnswerDocument)
                 .flatMap(doc -> answerElasticsearchRepository.save(doc)
                         .onErrorResume(e -> {
                             log.error("Error saving answer to Elasticsearch: {}", doc.getId(), e);
                             return Mono.empty();
                         }))
                 .then();
-    }
-    
-    private SurveyDocument mapToSurveyDocument(Survey survey) {
-        // Calculate the question count for this survey
-        // We'll set it to 0 for now since we need an async operation to count them
-        // The AdminService will provide the correct counts when searching
-        
-        return SurveyDocument.builder()
-                .id(survey.getId())
-                .title(survey.getTitle())
-                .description(survey.getDescription())
-                .questionSize(0) // Default to 0 - this will be updated when searching via AdminService
-                .createdBy(survey.getCreatedBy())
-                .createdAt(survey.getCreatedAt())
-                .build();
-    }
-    
-    private QuestionDocument mapToQuestionDocument(Question question) {
-        return QuestionDocument.builder()
-                .id(question.getId())
-                .surveyId(question.getSurveyId())
-                .content(question.getContent())
-                .questionType(question.getQuestionType())
-                .createdAt(question.getCreatedAt())
-                .build();
-    }
-    
-    private ChoiceDocument mapToChoiceDocument(Choice choice) {
-        return ChoiceDocument.builder()
-                .id(choice.getId())
-                .questionId(choice.getQuestionId())
-                .choiceText(choice.getChoiceText())
-                .build();
-    }
-    
-    private AnswerDocument mapToAnswerDocument(Answer answer) {
-        return AnswerDocument.builder()
-                .id(answer.getId())
-                .questionId(answer.getQuestionId())
-                .userId(answer.getUserId())
-                .choiceId(answer.getChoiceId())
-                .isPublic(answer.getIsPublic())
-                .createdAt(answer.getCreatedAt())
-                .build();
     }
 } 
