@@ -9,7 +9,7 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 import jakarta.annotation.PostConstruct;
 
 @Configuration
-@EnableAspectJAutoProxy
+@EnableAspectJAutoProxy(exposeProxy = true)
 public class LoggingConfig {
 
     @PostConstruct

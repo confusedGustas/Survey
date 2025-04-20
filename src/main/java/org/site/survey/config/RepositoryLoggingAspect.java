@@ -7,12 +7,14 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.Arrays;
 
 @Aspect
 @Component
+@Order(3) // A higher value than LoggingAspect to ensure proper order
 public class RepositoryLoggingAspect {
 
     @Pointcut("within(org.site.survey.repository..*)")
