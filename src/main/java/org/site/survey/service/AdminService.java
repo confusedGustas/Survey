@@ -1,6 +1,5 @@
 package org.site.survey.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.site.survey.dto.StatisticsDTO;
 import org.site.survey.dto.response.SearchResultDTO;
 import org.site.survey.integrity.ElasticsearchDataIntegrity;
@@ -20,6 +19,8 @@ import org.site.survey.repository.elasticsearch.AnswerElasticsearchRepository;
 import org.site.survey.repository.elasticsearch.ChoiceElasticsearchRepository;
 import org.site.survey.repository.elasticsearch.QuestionElasticsearchRepository;
 import org.site.survey.repository.elasticsearch.SurveyElasticsearchRepository;
+import org.site.survey.util.LoggerUtil;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
@@ -34,7 +35,6 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 @Service
-@Slf4j
 public class AdminService {
 
     private final SurveyRepository surveyRepository;
@@ -44,6 +44,8 @@ public class AdminService {
     private final UserRepository userRepository;
     private final ElasticsearchDataIntegrity elasticsearchDataIntegrity;
     private final ElasticsearchMapper elasticsearchMapper;
+    private static final Logger logger = LoggerUtil.getLogger(AdminService.class);
+    private static final Logger errorLogger = LoggerUtil.getErrorLogger(AdminService.class);
 
     private SurveyElasticsearchRepository surveyElasticsearchRepository;
     private QuestionElasticsearchRepository questionElasticsearchRepository;
@@ -66,6 +68,7 @@ public class AdminService {
         this.userRepository = userRepository;
         this.elasticsearchDataIntegrity = elasticsearchDataIntegrity;
         this.elasticsearchMapper = elasticsearchMapper;
+        logger.info("AdminService initialized");
     }
     
     @Autowired(required = false)
@@ -78,7 +81,7 @@ public class AdminService {
             AnswerElasticsearchRepository answerElasticsearchRepository) {
         
         if (operations == null) {
-            log.warn("ReactiveElasticsearchOperations is null, Elasticsearch features will be disabled");
+            logger.warn("ReactiveElasticsearchOperations is null, Elasticsearch features will be disabled");
             return;
         }
         
@@ -86,7 +89,7 @@ public class AdminService {
             questionElasticsearchRepository == null || 
             choiceElasticsearchRepository == null || 
             answerElasticsearchRepository == null) {
-            log.warn("One or more Elasticsearch repositories are null, Elasticsearch features will be disabled");
+            logger.warn("One or more Elasticsearch repositories are null, Elasticsearch features will be disabled");
             return;
         }
 
@@ -94,11 +97,11 @@ public class AdminService {
         this.questionElasticsearchRepository = questionElasticsearchRepository;
         this.choiceElasticsearchRepository = choiceElasticsearchRepository;
         this.answerElasticsearchRepository = answerElasticsearchRepository;
-        log.info("Elasticsearch dependencies initialized");
+        logger.info("Elasticsearch dependencies initialized");
     }
     
     public Flux<SearchResultDTO> searchAll(String query) {
-        log.info("Searching all entities with query: {}", query);
+        logger.info("Searching all entities with query: {}", query);
         elasticsearchDataIntegrity.validateSearchQuery(query);
         
         Flux<SearchResultDTO> surveyResults = searchSurveys(query)
@@ -113,13 +116,15 @@ public class AdminService {
         return Flux.concat(surveyResults, questionResults, choiceResults)
             .switchIfEmpty(Flux.just(createSearchResult("results", "0", "info", 
                 Map.of("message", "No results found for query: " + query))))
+            .doOnComplete(() -> logger.info("Search completed for query: {}", query))
             .onErrorResume(e -> {
-                log.error("Error searching across all entities", e);
+                errorLogger.error("Error searching across all entities: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
     
     private SearchResultDTO createSearchResult(String index, String id, String type, Object content) {
+        logger.debug("Creating search result: index={}, id={}, type={}", index, id, type);
         return SearchResultDTO.builder()
             .index(index)
             .id(id)
@@ -129,27 +134,33 @@ public class AdminService {
     }
     
     public Flux<SurveyDocument> searchSurveys(String query) {
-        log.info("Searching surveys with query: {}", query);
+        logger.info("Searching surveys with query: {}", query);
         elasticsearchDataIntegrity.validateSearchQuery(query);
         
         if (surveyElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for survey search");
+            logger.debug("Using Elasticsearch for survey search");
             return surveyElasticsearchRepository.findByTitleContainingOrDescriptionContaining(query, query)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No surveys found matching query: {}", query);
+                    logger.info("No surveys found matching query: {}", query);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch survey search completed for query: {}", query))
                 .onErrorResume(e -> {
-                    log.error("Error searching surveys in Elasticsearch", e);
+                    errorLogger.error("Error searching surveys in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbSurveySearch(query);
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbSurveySearch(query);
     }
-    
+
+    private static void logElastic() {
+        logger.debug("Elasticsearch repository not available, using database search");
+    }
+
     private Flux<SurveyDocument> fallbackToDbSurveySearch(String query) {
-        log.debug("Falling back to database search for surveys");
+        logger.debug("Falling back to database search for surveys with query: {}", query);
         return surveyRepository.findAll()
             .filter(survey -> 
                 (survey.getTitle() != null && survey.getTitle().toLowerCase().contains(query.toLowerCase())) || 
@@ -157,95 +168,104 @@ public class AdminService {
             .flatMap(survey -> questionRepository.findBySurveyId(survey.getId())
                 .count()
                 .map(count -> elasticsearchMapper.mapToSurveyDocument(survey, count.intValue())))
+            .doOnComplete(() -> logger.debug("Database survey search completed for query: {}", query))
             .onErrorResume(e -> {
-                log.error("Error in database fallback search for surveys", e);
+                errorLogger.error("Error in database fallback search for surveys: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
     
     public Flux<QuestionDocument> searchQuestions(String query) {
-        log.info("Searching questions with query: {}", query);
+        logger.info("Searching questions with query: {}", query);
         elasticsearchDataIntegrity.validateSearchQuery(query);
         
         if (questionElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for question search");
+            logger.debug("Using Elasticsearch for question search");
             return questionElasticsearchRepository.findByContentContaining(query)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No questions found matching query: {}", query);
+                    logger.info("No questions found matching query: {}", query);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch question search completed for query: {}", query))
                 .onErrorResume(e -> {
-                    log.error("Error searching questions in Elasticsearch", e);
+                    errorLogger.error("Error searching questions in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbQuestionSearch(query);
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbQuestionSearch(query);
     }
     
     private Flux<QuestionDocument> fallbackToDbQuestionSearch(String query) {
-        log.debug("Falling back to database search for questions");
+        logger.debug("Falling back to database search for questions with query: {}", query);
         return questionRepository.findAll()
             .filter(question -> 
                 question.getContent() != null && 
                 question.getContent().toLowerCase().contains(query.toLowerCase()))
             .map(elasticsearchMapper::mapToQuestionDocument)
+            .doOnComplete(() -> logger.debug("Database question search completed for query: {}", query))
             .onErrorResume(e -> {
-                log.error("Error in database fallback search for questions", e);
+                errorLogger.error("Error in database fallback search for questions: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
     
     public Flux<ChoiceDocument> searchChoices(String query) {
-        log.info("Searching choices with query: {}", query);
+        logger.info("Searching choices with query: {}", query);
         elasticsearchDataIntegrity.validateSearchQuery(query);
         
         if (choiceElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for choice search");
+            logger.debug("Using Elasticsearch for choice search");
             return choiceElasticsearchRepository.findByChoiceTextContaining(query)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No choices found matching query: {}", query);
+                    logger.info("No choices found matching query: {}", query);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch choice search completed for query: {}", query))
                 .onErrorResume(e -> {
-                    log.error("Error searching choices in Elasticsearch", e);
+                    errorLogger.error("Error searching choices in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbChoiceSearch(query);
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbChoiceSearch(query);
     }
     
     private Flux<ChoiceDocument> fallbackToDbChoiceSearch(String query) {
-        log.debug("Falling back to database search for choices");
+        logger.debug("Falling back to database search for choices with query: {}", query);
         return choiceRepository.findAll()
             .filter(choice -> 
                 choice.getChoiceText() != null && 
                 choice.getChoiceText().toLowerCase().contains(query.toLowerCase()))
             .map(elasticsearchMapper::mapToChoiceDocument)
+            .doOnComplete(() -> logger.debug("Database choice search completed for query: {}", query))
             .onErrorResume(e -> {
-                log.error("Error in database fallback search for choices", e);
+                errorLogger.error("Error in database fallback search for choices: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
     
     public Flux<AnswerDocument> searchAnswersByQuestionId(Integer questionId) {
-        log.info("Searching answers for question ID: {}", questionId);
+        logger.info("Searching answers for question ID: {}", questionId);
         elasticsearchDataIntegrity.validateQuestionId(questionId);
         
         if (answerElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for answer search");
+            logger.debug("Using Elasticsearch for answer search by question ID: {}", questionId);
             return answerElasticsearchRepository.findByQuestionId(questionId)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No answers found for question ID: {}", questionId);
+                    logger.info("No answers found for question ID: {}", questionId);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch answer search completed for question ID: {}", questionId))
                 .onErrorResume(e -> {
-                    log.error("Error searching answers in Elasticsearch", e);
+                    errorLogger.error("Error searching answers in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbAnswerSearch(answer -> answer.getQuestionId().equals(questionId));
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbAnswerSearch(answer -> answer.getQuestionId().equals(questionId));
     }
     
@@ -267,7 +287,7 @@ public class AdminService {
                         .questionTypeStats(tuple.getT6())
                         .build())
                 .onErrorResume(e -> {
-                    log.error("Error getting statistics", e);
+                    errorLogger.error("Error getting statistics: {}", e.getMessage(), e);
                     return Mono.just(new StatisticsDTO());
                 });
     }
@@ -293,173 +313,199 @@ public class AdminService {
                             return result;
                         }))
                 .onErrorResume(e -> {
-                    log.error("Error getting user participation statistics", e);
+                    errorLogger.error("Error getting user participation statistics: {}", e.getMessage(), e);
                     return Flux.empty();
                 });
     }
 
     public Flux<AnswerDocument> searchAnswersByUserId(Integer userId) {
-        log.info("Searching answers for user ID: {}", userId);
+        logger.info("Searching answers for user ID: {}", userId);
         elasticsearchDataIntegrity.validateUserId(userId);
         
         if (answerElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for user answer search");
+            logger.debug("Using Elasticsearch for user answer search by user ID: {}", userId);
             return answerElasticsearchRepository.findByUserId(userId)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No answers found for user ID: {}", userId);
+                    logger.info("No answers found for user ID: {}", userId);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch user answer search completed for user ID: {}", userId))
                 .onErrorResume(e -> {
-                    log.error("Error searching answers by user ID in Elasticsearch", e);
+                    errorLogger.error("Error searching answers by user ID in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbAnswerSearch(answer -> answer.getUserId().equals(userId));
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbAnswerSearch(answer -> answer.getUserId().equals(userId));
     }
 
     public Flux<AnswerDocument> searchPublicAnswers() {
-        log.info("Searching for public answers");
+        logger.info("Searching for public answers");
         elasticsearchDataIntegrity.validatePublicFlag(true);
         
         if (answerElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for public answer search");
+            logger.debug("Using Elasticsearch for public answer search");
             return answerElasticsearchRepository.findByIsPublic(true)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No public answers found");
+                    logger.info("No public answers found");
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch public answer search completed"))
                 .onErrorResume(e -> {
-                    log.error("Error searching public answers in Elasticsearch", e);
+                    errorLogger.error("Error searching public answers in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbAnswerSearch(answer -> answer.getIsPublic() != null && answer.getIsPublic());
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbAnswerSearch(answer -> answer.getIsPublic() != null && answer.getIsPublic());
     }
 
     public Flux<AnswerDocument> searchAnswersByQuestionIdAndUserId(Integer questionId, Integer userId) {
-        log.info("Searching answers for question ID: {} and user ID: {}", questionId, userId);
+        logger.info("Searching answers for question ID: {} and user ID: {}", questionId, userId);
         elasticsearchDataIntegrity.validateQuestionId(questionId);
         elasticsearchDataIntegrity.validateUserId(userId);
         
         if (answerElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for answers by question and user search");
+            logger.debug("Using Elasticsearch for answers by question and user search by question ID: {} and user ID: {}", questionId, userId);
             return answerElasticsearchRepository.findByQuestionIdAndUserId(questionId, userId)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No answers found for question ID: {} and user ID: {}", questionId, userId);
+                    logger.info("No answers found for question ID: {} and user ID: {}", questionId, userId);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch answers by question and user search completed for question ID: {} and user ID: {}", questionId, userId))
                 .onErrorResume(e -> {
-                    log.error("Error searching answers by question ID and user ID in Elasticsearch", e);
+                    errorLogger.error("Error searching answers by question ID and user ID in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbAnswerSearch(answer -> 
                         answer.getQuestionId().equals(questionId) && answer.getUserId().equals(userId));
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbAnswerSearch(answer -> 
             answer.getQuestionId().equals(questionId) && answer.getUserId().equals(userId));
     }
 
     public Flux<QuestionDocument> searchQuestionsBySurveyId(Integer surveyId) {
-        log.info("Searching questions for survey ID: {}", surveyId);
+        logger.info("Searching questions for survey ID: {}", surveyId);
         elasticsearchDataIntegrity.validateSurveyId(surveyId);
         
         if (questionElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for questions by survey search");
+            logger.debug("Using Elasticsearch for questions by survey search by survey ID: {}", surveyId);
             return questionElasticsearchRepository.findBySurveyId(surveyId)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No questions found for survey ID: {}", surveyId);
+                    logger.info("No questions found for survey ID: {}", surveyId);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch questions by survey search completed for survey ID: {}", surveyId))
                 .onErrorResume(e -> {
-                    log.error("Error searching questions by survey ID in Elasticsearch", e);
+                    errorLogger.error("Error searching questions by survey ID in Elasticsearch: {}", e.getMessage(), e);
                     return questionRepository.findBySurveyId(surveyId)
                         .map(elasticsearchMapper::mapToQuestionDocument)
+                        .doOnComplete(() -> getDebug(surveyId))
                         .onErrorResume(ex -> {
-                            log.error("Error in database search for questions by survey ID", ex);
+                            errorLogger.error("Error in database search for questions by survey ID: {}", ex.getMessage(), ex);
                             return Flux.empty();
                         });
                 });
         }
-        
+
+        logElastic();
         return questionRepository.findBySurveyId(surveyId)
             .map(elasticsearchMapper::mapToQuestionDocument)
+            .doOnComplete(() -> getDebug(surveyId))
             .onErrorResume(e -> {
-                log.error("Error in database search for questions by survey ID", e);
+                errorLogger.error("Error in database search for questions by survey ID: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
 
+    private static void getDebug(Integer surveyId) {
+        logger.debug("Database questions by survey search completed for survey ID: {}", surveyId);
+    }
+
     public Flux<QuestionDocument> searchQuestionsByType(String questionType) {
-        log.info("Searching questions of type: {}", questionType);
+        logger.info("Searching questions of type: {}", questionType);
         elasticsearchDataIntegrity.validateQuestionType(questionType);
         
         if (questionElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for questions by type search");
+            logger.debug("Using Elasticsearch for questions by type search by question type: {}", questionType);
             return questionElasticsearchRepository.findByQuestionType(questionType)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No questions found of type: {}", questionType);
+                    logger.info("No questions found of type: {}", questionType);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch questions by type search completed for question type: {}", questionType))
                 .onErrorResume(e -> {
-                    log.error("Error searching questions by type in Elasticsearch", e);
+                    errorLogger.error("Error searching questions by type in Elasticsearch: {}", e.getMessage(), e);
                     return fallbackToDbQuestionSearchByType(questionType);
                 });
         }
-        
+
+        logElastic();
         return fallbackToDbQuestionSearchByType(questionType);
     }
 
     private Flux<QuestionDocument> fallbackToDbQuestionSearchByType(String questionType) {
-        log.debug("Falling back to database search for questions by type");
+        logger.debug("Falling back to database search for questions by type with query: {}", questionType);
         return questionRepository.findAll()
             .filter(question -> question.getQuestionType() != null && 
                     question.getQuestionType().equalsIgnoreCase(questionType))
             .map(elasticsearchMapper::mapToQuestionDocument)
+            .doOnComplete(() -> logger.debug("Database questions by type search completed for question type: {}", questionType))
             .onErrorResume(e -> {
-                log.error("Error in database fallback search for questions by type", e);
+                errorLogger.error("Error in database fallback search for questions by type: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
 
     public Flux<ChoiceDocument> searchChoicesByQuestionId(Integer questionId) {
-        log.info("Searching choices for question ID: {}", questionId);
+        logger.info("Searching choices for question ID: {}", questionId);
         elasticsearchDataIntegrity.validateQuestionId(questionId);
         
         if (choiceElasticsearchRepository != null) {
-            log.debug("Using Elasticsearch for choices by question search");
+            logger.debug("Using Elasticsearch for choices by question search by question ID: {}", questionId);
             return choiceElasticsearchRepository.findByQuestionId(questionId)
                 .switchIfEmpty(Flux.defer(() -> {
-                    log.info("No choices found for question ID: {}", questionId);
+                    logger.info("No choices found for question ID: {}", questionId);
                     return Flux.empty();
                 }))
+                .doOnComplete(() -> logger.debug("Elasticsearch choices by question search completed for question ID: {}", questionId))
                 .onErrorResume(e -> {
-                    log.error("Error searching choices by question ID in Elasticsearch", e);
+                    errorLogger.error("Error searching choices by question ID in Elasticsearch: {}", e.getMessage(), e);
                     return choiceRepository.findByQuestionId(questionId)
                         .map(elasticsearchMapper::mapToChoiceDocument)
+                        .doOnComplete(() -> logQuestionId(questionId))
                         .onErrorResume(ex -> {
-                            log.error("Error in database search for choices by question ID", ex);
+                            errorLogger.error("Error in database search for choices by question ID: {}", ex.getMessage(), ex);
                             return Flux.empty();
                         });
                 });
         }
-        
+
+        logElastic();
         return choiceRepository.findByQuestionId(questionId)
             .map(elasticsearchMapper::mapToChoiceDocument)
+            .doOnComplete(() -> logQuestionId(questionId))
             .onErrorResume(e -> {
-                log.error("Error in database search for choices by question ID", e);
+                errorLogger.error("Error in database search for choices by question ID: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }
 
+    private static void logQuestionId(Integer questionId) {
+        logger.debug("Database choices by question search completed for question ID: {}", questionId);
+    }
+
     private Flux<AnswerDocument> fallbackToDbAnswerSearch(Predicate<Answer> filter) {
-        log.debug("Falling back to database search for answers");
+        logger.debug("Falling back to database search for answers");
         return answerRepository.findAll()
             .filter(filter)
             .map(elasticsearchMapper::mapToAnswerDocument)
+            .doOnComplete(() -> logger.debug("Database answer search completed"))
             .onErrorResume(e -> {
-                log.error("Error in database fallback search for answers", e);
+                errorLogger.error("Error in database fallback search for answers: {}", e.getMessage(), e);
                 return Flux.empty();
             });
     }

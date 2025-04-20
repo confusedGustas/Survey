@@ -5,11 +5,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.Logger;
 import org.site.survey.dto.request.AuthRequestDTO;
 import org.site.survey.dto.response.AuthResponseDTO;
 import org.site.survey.exception.AuthenticationException;
 import org.site.survey.service.UserService;
 import org.site.survey.service.jwt.JwtService;
+import org.site.survey.util.LoggerUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -19,6 +21,9 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "APIs for authentication")
 public class AuthController {
+    private static final Logger logger = LoggerUtil.getLogger(AuthController.class);
+    private static final Logger errorLogger = LoggerUtil.getErrorLogger(AuthController.class);
+    
     private final UserService userService;
     private final JwtService jwtService;
 
@@ -34,11 +39,22 @@ public class AuthController {
     })
     @ResponseStatus(HttpStatus.OK)
     public Mono<AuthResponseDTO> login(@RequestBody AuthRequestDTO authRequest) {
+        logger.info("Login attempt for user: {}", authRequest.getUsername());
+        
         return userService.authenticateUser(authRequest.getUsername(), authRequest.getPassword())
                 .flatMap(user -> {
+                    logger.info("User authenticated successfully: {}", user.getUsername());
+                    logger.debug("Generating tokens for user: {}, role: {}", user.getUsername(), user.getRole());
+                    
                     String accessToken = jwtService.generateToken(user.getUsername(), user.getRole());
                     String refreshToken = jwtService.generateRefreshToken(user.getUsername(), user.getRole());
+                    
+                    logger.debug("Tokens generated successfully for user: {}", user.getUsername());
                     return Mono.just(new AuthResponseDTO(accessToken, refreshToken));
+                })
+                .doOnError(e -> {
+                    logger.warn("Authentication failed for user: {}", authRequest.getUsername());
+                    errorLogger.error("Authentication error: {}", e.getMessage(), e);
                 })
                 .onErrorMap(e -> new AuthenticationException());
     }
@@ -56,10 +72,20 @@ public class AuthController {
     })
     @ResponseStatus(HttpStatus.OK)
     public Mono<AuthResponseDTO> refreshToken(@RequestParam String refreshToken) {
+        logger.info("Token refresh request received");
+        logger.debug("Processing refresh token: {}", refreshToken.substring(0, Math.min(10, refreshToken.length())) + "...");
+        
         return jwtService.refreshTokens(refreshToken)
-                .map(tokens -> new AuthResponseDTO(
-                    tokens.get("accessToken"),
-                    tokens.get("refreshToken")
-                ));
+                .map(tokens -> {
+                    logger.info("Tokens refreshed successfully");
+                    return new AuthResponseDTO(
+                        tokens.get("accessToken"),
+                        tokens.get("refreshToken")
+                    );
+                })
+                .doOnError(e -> {
+                    logger.warn("Token refresh failed");
+                    errorLogger.error("Token refresh error: {}", e.getMessage(), e);
+                });
     }
 } 

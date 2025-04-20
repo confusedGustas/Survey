@@ -27,6 +27,14 @@ public class AnswerMapper {
                 .build();
     }
     
+    public QuestionGroupedAnswerDTO mapToQuestionGroupedAnswer(Integer questionId, QuestionType questionType, List<AnswerResponseDTO> answers) {
+        return QuestionGroupedAnswerDTO.builder()
+                .questionId(questionId)
+                .questionType(questionType)
+                .answers(answers)
+                .build();
+    }
+    
     public GroupedSurveyAnswerResponseDTO transformToGroupedResponse(SurveyAnswerResponseDTO response) {
         if (response == null) {
             return null;
@@ -50,11 +58,7 @@ public class AnswerMapper {
                         questionType = QuestionType.SINGLE;
                     }
                     
-                    return QuestionGroupedAnswerDTO.builder()
-                            .questionId(questionId)
-                            .questionType(questionType)
-                            .answers(answers)
-                            .build();
+                    return mapToQuestionGroupedAnswer(questionId, questionType, answers);
                 })
                 .collect(Collectors.toList());
         

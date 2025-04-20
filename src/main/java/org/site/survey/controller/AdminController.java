@@ -7,9 +7,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.logging.log4j.Logger;
 import org.site.survey.dto.StatisticsDTO;
 import org.site.survey.service.AdminService;
 import org.site.survey.service.ElasticsearchSyncService;
+import org.site.survey.util.LoggerUtil;
 import org.site.survey.util.ResponseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +30,9 @@ import java.util.Map;
 @Tag(name = "Admin Management", description = "APIs for administrative operations and data management")
 public class AdminController {
 
+    private static final Logger logger = LoggerUtil.getLogger(AdminController.class);
+    private static final Logger errorLogger = LoggerUtil.getErrorLogger(AdminController.class);
+
     private final AdminService adminService;
     private final ElasticsearchSyncService elasticsearchSyncService;
 
@@ -36,6 +41,8 @@ public class AdminController {
                            @Autowired(required = false) ElasticsearchSyncService elasticsearchSyncService) {
         this.adminService = adminService;
         this.elasticsearchSyncService = elasticsearchSyncService;
+        logger.info("AdminController initialized");
+        logger.debug("Elasticsearch sync service available: {}", (elasticsearchSyncService != null));
     }
 
     @GetMapping("/search")
@@ -53,7 +60,10 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchAll(
             @Parameter(description = "Search query string", required = true) 
             @RequestParam String query) {
-        return ResponseUtils.wrapFluxResponse(adminService.searchAll(query), "search results");
+        logger.info("Performing global search with query: '{}'", query);
+        return ResponseUtils.wrapFluxResponse(adminService.searchAll(query), "search results")
+                .doOnSuccess(response -> logger.info("Global search completed successfully"))
+                .doOnError(e -> errorLogger.error("Error during global search: {}", e.getMessage(), e));
     }
 
     @GetMapping("/search/surveys")
@@ -71,7 +81,10 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchSurveys(
             @Parameter(description = "Search query string", required = true)
             @RequestParam String query) {
-        return ResponseUtils.wrapFluxResponse(adminService.searchSurveys(query), "surveys");
+        logger.info("Searching surveys with query: '{}'", query);
+        return ResponseUtils.wrapFluxResponse(adminService.searchSurveys(query), "surveys")
+                .doOnSuccess(response -> logger.info("Survey search completed successfully"))
+                .doOnError(e -> errorLogger.error("Error during survey search: {}", e.getMessage(), e));
     }
 
     @GetMapping("/search/questions")
@@ -89,7 +102,10 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchQuestions(
             @Parameter(description = "Search query string", required = true)
             @RequestParam String query) {
-        return ResponseUtils.wrapFluxResponse(adminService.searchQuestions(query), "questions");
+        logger.info("Searching questions with query: '{}'", query);
+        return ResponseUtils.wrapFluxResponse(adminService.searchQuestions(query), "questions")
+                .doOnSuccess(response -> logger.info("Question search completed successfully"))
+                .doOnError(e -> errorLogger.error("Error during question search: {}", e.getMessage(), e));
     }
     
     @GetMapping("/search/questions/survey")
@@ -107,10 +123,13 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchQuestionsBySurveyId(
             @Parameter(description = "Survey ID", required = true, example = "1")
             @RequestParam Integer surveyId) {
+        logger.info("Searching questions for survey ID: {}", surveyId);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchQuestionsBySurveyId(surveyId), 
             "questions for survey " + surveyId
-        );
+        )
+        .doOnSuccess(response -> logger.info("Question search by survey ID completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching questions for survey ID {}: {}", surveyId, e.getMessage(), e));
     }
     
     @GetMapping("/search/questions/type")
@@ -128,10 +147,13 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchQuestionsByType(
             @Parameter(description = "Question type", required = true, example = "MULTIPLE_CHOICE")
             @RequestParam String type) {
+        logger.info("Searching questions of type: {}", type);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchQuestionsByType(type), 
             "questions of type " + type
-        );
+        )
+        .doOnSuccess(response -> logger.info("Question search by type completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching questions of type {}: {}", type, e.getMessage(), e));
     }
 
     @GetMapping("/search/choices")
@@ -149,7 +171,10 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchChoices(
             @Parameter(description = "Search query string", required = true)
             @RequestParam String query) {
-        return ResponseUtils.wrapFluxResponse(adminService.searchChoices(query), "choices");
+        logger.info("Searching choices with query: '{}'", query);
+        return ResponseUtils.wrapFluxResponse(adminService.searchChoices(query), "choices")
+                .doOnSuccess(response -> logger.info("Choice search completed successfully"))
+                .doOnError(e -> errorLogger.error("Error during choice search: {}", e.getMessage(), e));
     }
     
     @GetMapping("/search/choices/question")
@@ -167,10 +192,13 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchChoicesByQuestionId(
             @Parameter(description = "Question ID", required = true, example = "1")
             @RequestParam Integer questionId) {
+        logger.info("Searching choices for question ID: {}", questionId);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchChoicesByQuestionId(questionId), 
             "choices for question " + questionId
-        );
+        )
+        .doOnSuccess(response -> logger.info("Choice search by question ID completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching choices for question ID {}: {}", questionId, e.getMessage(), e));
     }
 
     @GetMapping("/search/answers/question")
@@ -188,10 +216,13 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchAnswersByQuestionId(
             @Parameter(description = "Question ID", required = true, example = "1")
             @RequestParam Integer questionId) {
+        logger.info("Searching answers for question ID: {}", questionId);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchAnswersByQuestionId(questionId), 
             "answers for question " + questionId
-        );
+        )
+        .doOnSuccess(response -> logger.info("Answer search by question ID completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching answers for question ID {}: {}", questionId, e.getMessage(), e));
     }
     
     @GetMapping("/search/answers/user")
@@ -209,12 +240,15 @@ public class AdminController {
     public Mono<ResponseEntity<Object>> searchAnswersByUserId(
             @Parameter(description = "User ID", required = true, example = "1")
             @RequestParam Integer userId) {
+        logger.info("Searching answers for user ID: {}", userId);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchAnswersByUserId(userId), 
-            "answers for user " + userId
-        );
+            "answers by user " + userId
+        )
+        .doOnSuccess(response -> logger.info("Answer search by user ID completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching answers for user ID {}: {}", userId, e.getMessage(), e));
     }
-    
+
     @GetMapping("/search/answers/public")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
@@ -227,7 +261,13 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public Mono<ResponseEntity<Object>> searchPublicAnswers() {
-        return ResponseUtils.wrapFluxResponse(adminService.searchPublicAnswers(), "public answers");
+        logger.info("Searching for public answers");
+        return ResponseUtils.wrapFluxResponse(
+            adminService.searchPublicAnswers(), 
+            "public answers"
+        )
+        .doOnSuccess(response -> logger.info("Public answer search completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching for public answers: {}", e.getMessage(), e));
     }
     
     @GetMapping("/search/answers/question-user")
@@ -247,10 +287,14 @@ public class AdminController {
             @RequestParam Integer questionId, 
             @Parameter(description = "User ID", required = true, example = "1")
             @RequestParam Integer userId) {
+        logger.info("Searching answers for question ID: {} and user ID: {}", questionId, userId);
         return ResponseUtils.wrapFluxResponse(
             adminService.searchAnswersByQuestionIdAndUserId(questionId, userId), 
-            "answers for question " + questionId + " and user " + userId
-        );
+            "answers for question " + questionId + " by user " + userId
+        )
+        .doOnSuccess(response -> logger.info("Answer search by question ID and user ID completed successfully"))
+        .doOnError(e -> errorLogger.error("Error searching answers for question ID {} and user ID {}: {}", 
+                          questionId, userId, e.getMessage(), e));
     }
     
     @PostMapping("/elasticsearch/sync")
@@ -266,18 +310,25 @@ public class AdminController {
         @ApiResponse(responseCode = "500", description = "Internal server error during synchronization")
     })
     public Mono<ResponseEntity<Map<String, String>>> syncElasticsearch() {
+        logger.info("Starting Elasticsearch synchronization");
+        
         if (elasticsearchSyncService == null) {
-            return Mono.just(ResponseEntity.ok(Map.of("status", "Elasticsearch is not enabled")));
+            logger.warn("Elasticsearch synchronization requested but Elasticsearch is disabled");
+            return Mono.just(ResponseEntity.ok(Map.of(
+                "status", "skipped",
+                "message", "Elasticsearch is disabled"
+            )));
         }
         
         return elasticsearchSyncService.syncAllData()
-            .then(Mono.just(ResponseEntity.ok(Map.of("status", "Elasticsearch sync completed successfully"))))
-            .onErrorResume(e -> Mono.just(ResponseEntity.ok(Map.of(
-                "status", "Failed to sync with Elasticsearch",
-                "error", e.getMessage()
-            ))));
+                .thenReturn(ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Elasticsearch synchronization completed successfully"
+                )))
+                .doOnSuccess(response -> logger.info("Elasticsearch synchronization completed successfully"))
+                .doOnError(e -> errorLogger.error("Error during Elasticsearch synchronization: {}", e.getMessage(), e));
     }
-
+    
     @GetMapping("/statistics")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
@@ -294,21 +345,20 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public Mono<ResponseEntity<Object>> getStatistics() {
+        logger.info("Retrieving system statistics");
         return adminService.getStatistics()
-            .map(stats -> {
-                if (stats.getTotalSurveys() == 0 && stats.getTotalQuestions() == 0 && 
-                    stats.getTotalChoices() == 0 && stats.getTotalAnswers() == 0) {
-                    return ResponseEntity.ok(ResponseUtils.emptyResponseMessage("statistics"));
-                } else {
+                .map(stats -> {
+                    logger.debug("Statistics retrieved: {}", stats);
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", stats
                     );
-                    return ResponseEntity.ok(response);
-                }
-            });
+                    return ResponseEntity.ok((Object) response);
+                })
+                .doOnSuccess(response -> logger.info("System statistics retrieved successfully"))
+                .doOnError(e -> errorLogger.error("Error retrieving system statistics: {}", e.getMessage(), e));
     }
-
+    
     @GetMapping("/statistics/question-types")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
@@ -321,20 +371,20 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public Mono<ResponseEntity<Object>> getQuestionTypeStatistics() {
+        logger.info("Retrieving question type statistics");
         return adminService.getQuestionTypeStatistics()
-            .map(stats -> {
-                if (stats.isEmpty()) {
-                    return ResponseEntity.ok(ResponseUtils.emptyResponseMessage("question type statistics"));
-                } else {
+                .map(stats -> {
+                    logger.debug("Question type statistics retrieved: {}", stats);
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", stats
                     );
-                    return ResponseEntity.ok(response);
-                }
-            });
+                    return ResponseEntity.ok((Object) response);
+                })
+                .doOnSuccess(response -> logger.info("Question type statistics retrieved successfully"))
+                .doOnError(e -> errorLogger.error("Error retrieving question type statistics: {}", e.getMessage(), e));
     }
-
+    
     @GetMapping("/statistics/user-participation")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
@@ -347,9 +397,18 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public Mono<ResponseEntity<Object>> getUserParticipationStatistics() {
-        return ResponseUtils.wrapFluxResponse(
-            adminService.getUserParticipationStatistics(), 
-            "user participation statistics"
-        );
+        logger.info("Retrieving user participation statistics");
+        return adminService.getUserParticipationStatistics()
+                .collectList()
+                .map(stats -> {
+                    logger.debug("User participation statistics retrieved: {}", stats);
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", stats
+                    );
+                    return ResponseEntity.ok((Object) response);
+                })
+                .doOnSuccess(response -> logger.info("User participation statistics retrieved successfully"))
+                .doOnError(e -> errorLogger.error("Error retrieving user participation statistics: {}", e.getMessage(), e));
     }
 } 

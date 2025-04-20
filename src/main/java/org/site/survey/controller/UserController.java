@@ -8,10 +8,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.Logger;
 import org.site.survey.dto.request.UserRequestDTO;
 import org.site.survey.dto.response.UserResponseDTO;
 import org.site.survey.exception.ResourceNotFoundException;
 import org.site.survey.service.UserService;
+import org.site.survey.util.LoggerUtil;
 import org.site.survey.util.ResponseUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +29,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -37,6 +38,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Tag(name = "User Management", description = "APIs for managing users")
 public class UserController {
+    private static final Logger logger = LoggerUtil.getLogger(UserController.class);
+    private static final Logger errorLogger = LoggerUtil.getErrorLogger(UserController.class);
+    
     private final UserService userService;
 
     @GetMapping
@@ -52,7 +56,13 @@ public class UserController {
     })
     @ResponseStatus(HttpStatus.OK)
     public Mono<ResponseEntity<Object>> getAllUsers() {
-        return ResponseUtils.wrapFluxResponse(userService.getAllUsers(), "users");
+        logger.info("Retrieving all users");
+        return ResponseUtils.wrapFluxResponse(userService.getAllUsers(), "users")
+                .doOnSuccess(response -> logger.info("Successfully retrieved all users"))
+                .doOnError(error -> {
+                    logger.warn("Failed to retrieve all users");
+                    errorLogger.error("Error retrieving all users: {}", error.getMessage(), error);
+                });
     }
 
     @GetMapping("/{id}")
@@ -68,14 +78,23 @@ public class UserController {
     })
     @ResponseStatus(HttpStatus.OK)
     public Mono<ResponseEntity<Object>> getUserById(@PathVariable Integer id) {
+        logger.info("Retrieving user by ID: {}", id);
         return userService.getUserById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException()))
                 .map(user -> {
+                    logger.info("Successfully retrieved user with ID: {}", id);
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", user
                     );
-                    return ResponseEntity.ok(response);
+                    return ResponseEntity.ok((Object)response);
+                })
+                .doOnError(error -> {
+                    if (error instanceof ResourceNotFoundException) {
+                        logger.warn("User with ID {} not found", id);
+                    } else {
+                        errorLogger.error("Error retrieving user with ID {}: {}", id, error.getMessage(), error);
+                    }
                 });
     }
 
@@ -116,13 +135,19 @@ public class UserController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<ResponseEntity<Object>> createUser(@RequestBody UserRequestDTO userRequestDTO) {
+        logger.info("Creating new user with username: {}", userRequestDTO.getUsername());
         return userService.createUser(userRequestDTO)
                 .map(user -> {
+                    logger.info("Successfully created user with username: {}", user.getUsername());
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", user
                     );
-                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                    return ResponseEntity.status(HttpStatus.CREATED).body((Object)response);
+                })
+                .doOnError(error -> {
+                    logger.warn("Failed to create user with username: {}", userRequestDTO.getUsername());
+                    errorLogger.error("Error creating user: {}", error.getMessage(), error);
                 });
     }
 
@@ -145,17 +170,26 @@ public class UserController {
             @PathVariable String username,
             @Parameter(description = "Updated user details", required = true)
             @RequestBody UserRequestDTO userRequestDTO) {
+        logger.info("Updating user with username: {}", username);
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getName)
-                .flatMap(currentUsername -> userService.updateUser(username, userRequestDTO, currentUsername))
+                .flatMap(currentUsername -> {
+                    logger.debug("Current authenticated user: {}, trying to update user: {}", currentUsername, username);
+                    return userService.updateUser(username, userRequestDTO, currentUsername);
+                })
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException()))
                 .map(user -> {
+                    logger.info("Successfully updated user: {}", username);
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", user
                     );
-                    return ResponseEntity.ok(response);
+                    return ResponseEntity.ok((Object)response);
+                })
+                .doOnError(error -> {
+                    logger.warn("Failed to update user: {}", username);
+                    errorLogger.error("Error updating user {}: {}", username, error.getMessage(), error);
                 });
     }
 
@@ -175,13 +209,22 @@ public class UserController {
     public Mono<ResponseEntity<Object>> deleteUser(
             @Parameter(description = "Username of the user to delete", required = true)
             @PathVariable String username) {
+        logger.info("Deleting user with username: {}", username);
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getName)
-                .flatMap(currentUsername -> userService.deleteUser(username, currentUsername))
-                .then(Mono.just(ResponseEntity.ok(Map.of(
+                .flatMap(currentUsername -> {
+                    logger.debug("Current authenticated user: {}, trying to delete user: {}", currentUsername, username);
+                    return userService.deleteUser(username, currentUsername);
+                })
+                .then(Mono.just(ResponseEntity.ok((Object)Map.of(
                     "status", "success",
                     "message", String.format("User with username '%s' was deleted successfully", username)
-                ))));
+                ))))
+                .doOnSuccess(response -> logger.info("Successfully deleted user: {}", username))
+                .doOnError(error -> {
+                    logger.warn("Failed to delete user: {}", username);
+                    errorLogger.error("Error deleting user {}: {}", username, error.getMessage(), error);
+                });
     }
 }

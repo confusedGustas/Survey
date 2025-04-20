@@ -9,10 +9,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.Logger;
 import org.site.survey.dto.request.SurveyRequestDTO;
 import org.site.survey.dto.response.SurveyResponseDTO;
 import org.site.survey.model.User;
 import org.site.survey.service.SurveyService;
+import org.site.survey.util.LoggerUtil;
 import org.site.survey.util.ResponseUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,9 @@ import java.util.Map;
 @Tag(name = "Survey Management", description = "APIs for managing surveys")
 public class SurveyController {
     
+    private static final Logger logger = LoggerUtil.getLogger(SurveyController.class);
+    private static final Logger errorLogger = LoggerUtil.getErrorLogger(SurveyController.class);
+    
     private final SurveyService surveyService;
     
     @PostMapping
@@ -56,18 +61,26 @@ public class SurveyController {
     public Mono<ResponseEntity<Object>> createSurvey(
             @Parameter(description = "Survey details", required = true)
             @Valid @RequestBody SurveyRequestDTO request) {
+        logger.info("Creating new survey with title: {}", request.getTitle());
+        logger.debug("Survey creation request details: {}", request);
+        
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(User.class)
-                .flatMap(user -> surveyService.createSurvey(request, user.getId()))
+                .flatMap(user -> {
+                    logger.info("Creating survey for user ID: {}", user.getId());
+                    return surveyService.createSurvey(request, user.getId());
+                })
                 .map(survey -> {
+                    logger.info("Survey created successfully with ID: {}", survey.getId());
                     Map<String, Object> response = Map.of(
                         "status", "success",
                         "data", survey
                     );
-                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
-                });
+                    return ResponseEntity.status(HttpStatus.CREATED).body((Object) response);
+                })
+                .doOnError(error -> errorLogger.error("Failed to create survey: {}", error.getMessage(), error));
     }
 
     @GetMapping("/user")
@@ -82,14 +95,18 @@ public class SurveyController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public Mono<ResponseEntity<Object>> getAllUserSurveys() {
+        logger.info("Retrieving all surveys for current user");
+        
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(User.class)
                 .flatMap(user -> {
+                    logger.info("Fetching surveys for user ID: {}", user.getId());
                     Flux<SurveyResponseDTO> surveys = surveyService.getAllSurveysByUser(user.getId());
                     return ResponseUtils.wrapFluxResponse(surveys, "surveys for user " + user.getId());
-                });
+                })
+                .doOnError(error -> errorLogger.error("Failed to retrieve user surveys: {}", error.getMessage(), error));
     }
     
     @DeleteMapping("/{id}")
@@ -109,10 +126,17 @@ public class SurveyController {
     public Mono<Void> deleteSurvey(
             @Parameter(description = "ID of the survey to delete", required = true)
             @PathVariable Integer id) {
+        logger.info("Deleting survey with ID: {}", id);
+        
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
                 .map(Authentication::getPrincipal)
                 .cast(User.class)
-                .flatMap(user -> surveyService.deleteSurvey(id, user.getId()));
+                .flatMap(user -> {
+                    logger.info("User {} attempting to delete survey {}", user.getId(), id);
+                    return surveyService.deleteSurvey(id, user.getId());
+                })
+                .doOnSuccess(result -> logger.info("Successfully deleted survey with ID: {}", id))
+                .doOnError(error -> errorLogger.error("Failed to delete survey with ID {}: {}", id, error.getMessage(), error));
     }
 } 

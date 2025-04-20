@@ -17,6 +17,8 @@ spring:
       httpclient:
         response-timeout: 5s
         max-header-size: '65536'
+  main:
+    banner-mode: off
   application:
     name: survey-application
   codec:
