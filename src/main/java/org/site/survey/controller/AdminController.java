@@ -49,7 +49,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search across all entities",
-        description = "Searches for the query string in surveys, questions, and choices"
+        description = "Searches for the query string in surveys, questions, and choices with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -59,9 +59,13 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchAll(
             @Parameter(description = "Search query string", required = true) 
-            @RequestParam String query) {
-        logger.info("Performing global search with query: '{}'", query);
-        return ResponseUtils.wrapFluxResponse(adminService.searchAll(query), "search results")
+            @RequestParam String query,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Performing global search with query: '{}', page: {}, size: {}", query, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(adminService.searchAll(query), "search results", page, size)
                 .doOnSuccess(response -> logger.info("Global search completed successfully"))
                 .doOnError(e -> errorLogger.error("Error during global search: {}", e.getMessage(), e));
     }
@@ -70,7 +74,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search surveys",
-        description = "Searches for the query string in survey titles and descriptions"
+        description = "Searches for the query string in survey titles and descriptions with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -80,9 +84,13 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchSurveys(
             @Parameter(description = "Search query string", required = true)
-            @RequestParam String query) {
-        logger.info("Searching surveys with query: '{}'", query);
-        return ResponseUtils.wrapFluxResponse(adminService.searchSurveys(query), "surveys")
+            @RequestParam String query,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching surveys with query: '{}', page: {}, size: {}", query, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(adminService.searchSurveys(query), "surveys", page, size)
                 .doOnSuccess(response -> logger.info("Survey search completed successfully"))
                 .doOnError(e -> errorLogger.error("Error during survey search: {}", e.getMessage(), e));
     }
@@ -91,7 +99,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search questions",
-        description = "Searches for the query string in question content"
+        description = "Searches for the query string in question content with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -101,9 +109,13 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchQuestions(
             @Parameter(description = "Search query string", required = true)
-            @RequestParam String query) {
-        logger.info("Searching questions with query: '{}'", query);
-        return ResponseUtils.wrapFluxResponse(adminService.searchQuestions(query), "questions")
+            @RequestParam String query,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching questions with query: '{}', page: {}, size: {}", query, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(adminService.searchQuestions(query), "questions", page, size)
                 .doOnSuccess(response -> logger.info("Question search completed successfully"))
                 .doOnError(e -> errorLogger.error("Error during question search: {}", e.getMessage(), e));
     }
@@ -112,7 +124,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search questions by survey ID",
-        description = "Retrieves all questions belonging to a specific survey"
+        description = "Retrieves all questions belonging to a specific survey with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -122,11 +134,17 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchQuestionsBySurveyId(
             @Parameter(description = "Survey ID", required = true, example = "1")
-            @RequestParam Integer surveyId) {
-        logger.info("Searching questions for survey ID: {}", surveyId);
-        return ResponseUtils.wrapFluxResponse(
+            @RequestParam Integer surveyId,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching questions for survey ID: {}, page: {}, size: {}", surveyId, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchQuestionsBySurveyId(surveyId), 
-            "questions for survey " + surveyId
+            "questions for survey " + surveyId,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Question search by survey ID completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching questions for survey ID {}: {}", surveyId, e.getMessage(), e));
@@ -136,7 +154,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search questions by type",
-        description = "Retrieves all questions of a specific question type"
+        description = "Retrieves all questions of a specific question type with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -145,12 +163,18 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
     public Mono<ResponseEntity<Object>> searchQuestionsByType(
-            @Parameter(description = "Question type", required = true, example = "MULTIPLE_CHOICE")
-            @RequestParam String type) {
-        logger.info("Searching questions of type: {}", type);
-        return ResponseUtils.wrapFluxResponse(
+            @Parameter(description = "Question type", required = true, example = "MULTIPLE")
+            @RequestParam String type,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching questions of type: {} with pagination - page: {}, size: {}", type, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchQuestionsByType(type), 
-            "questions of type " + type
+            "questions of type " + type,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Question search by type completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching questions of type {}: {}", type, e.getMessage(), e));
@@ -160,7 +184,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search choices",
-        description = "Searches for the query string in choice text"
+        description = "Searches for the query string in choice text with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -170,9 +194,13 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchChoices(
             @Parameter(description = "Search query string", required = true)
-            @RequestParam String query) {
-        logger.info("Searching choices with query: '{}'", query);
-        return ResponseUtils.wrapFluxResponse(adminService.searchChoices(query), "choices")
+            @RequestParam String query,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching choices with query: '{}', page: {}, size: {}", query, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(adminService.searchChoices(query), "choices", page, size)
                 .doOnSuccess(response -> logger.info("Choice search completed successfully"))
                 .doOnError(e -> errorLogger.error("Error during choice search: {}", e.getMessage(), e));
     }
@@ -181,7 +209,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search choices by question ID",
-        description = "Retrieves all choices belonging to a specific question"
+        description = "Retrieves all choices belonging to a specific question with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -191,11 +219,17 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchChoicesByQuestionId(
             @Parameter(description = "Question ID", required = true, example = "1")
-            @RequestParam Integer questionId) {
-        logger.info("Searching choices for question ID: {}", questionId);
-        return ResponseUtils.wrapFluxResponse(
+            @RequestParam Integer questionId,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching choices for question ID: {}, page: {}, size: {}", questionId, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchChoicesByQuestionId(questionId), 
-            "choices for question " + questionId
+            "choices for question " + questionId,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Choice search by question ID completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching choices for question ID {}: {}", questionId, e.getMessage(), e));
@@ -205,7 +239,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search answers by question ID",
-        description = "Retrieves all answers for a specific question"
+        description = "Retrieves all answers for a specific question with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -215,11 +249,17 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchAnswersByQuestionId(
             @Parameter(description = "Question ID", required = true, example = "1")
-            @RequestParam Integer questionId) {
-        logger.info("Searching answers for question ID: {}", questionId);
-        return ResponseUtils.wrapFluxResponse(
+            @RequestParam Integer questionId,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching answers for question ID: {}, page: {}, size: {}", questionId, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchAnswersByQuestionId(questionId), 
-            "answers for question " + questionId
+            "answers for question " + questionId,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Answer search by question ID completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching answers for question ID {}: {}", questionId, e.getMessage(), e));
@@ -229,7 +269,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search answers by user ID",
-        description = "Retrieves all answers submitted by a specific user"
+        description = "Retrieves all answers submitted by a specific user with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -239,11 +279,17 @@ public class AdminController {
     })
     public Mono<ResponseEntity<Object>> searchAnswersByUserId(
             @Parameter(description = "User ID", required = true, example = "1")
-            @RequestParam Integer userId) {
-        logger.info("Searching answers for user ID: {}", userId);
-        return ResponseUtils.wrapFluxResponse(
+            @RequestParam Integer userId,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching answers for user ID: {}, page: {}, size: {}", userId, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchAnswersByUserId(userId), 
-            "answers by user " + userId
+            "answers by user " + userId,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Answer search by user ID completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching answers for user ID {}: {}", userId, e.getMessage(), e));
@@ -253,18 +299,24 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search public answers",
-        description = "Retrieves all answers marked as public"
+        description = "Retrieves all answers marked as public with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public Mono<ResponseEntity<Object>> searchPublicAnswers() {
-        logger.info("Searching for public answers");
-        return ResponseUtils.wrapFluxResponse(
+    public Mono<ResponseEntity<Object>> searchPublicAnswers(
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching for public answers with pagination - page: {}, size: {}", page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchPublicAnswers(), 
-            "public answers"
+            "public answers",
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Public answer search completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching for public answers: {}", e.getMessage(), e));
@@ -274,7 +326,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Search answers by question ID and user ID",
-        description = "Retrieves all answers for a specific question submitted by a specific user"
+        description = "Retrieves all answers for a specific question submitted by a specific user with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search completed successfully"),
@@ -286,11 +338,17 @@ public class AdminController {
             @Parameter(description = "Question ID", required = true, example = "1")
             @RequestParam Integer questionId, 
             @Parameter(description = "User ID", required = true, example = "1")
-            @RequestParam Integer userId) {
-        logger.info("Searching answers for question ID: {} and user ID: {}", questionId, userId);
-        return ResponseUtils.wrapFluxResponse(
+            @RequestParam Integer userId,
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Searching answers for question ID: {} and user ID: {}, page: {}, size: {}", questionId, userId, page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
             adminService.searchAnswersByQuestionIdAndUserId(questionId, userId), 
-            "answers for question " + questionId + " by user " + userId
+            "answers for question " + questionId + " by user " + userId,
+            page,
+            size
         )
         .doOnSuccess(response -> logger.info("Answer search by question ID and user ID completed successfully"))
         .doOnError(e -> errorLogger.error("Error searching answers for question ID {} and user ID {}: {}", 
@@ -389,26 +447,26 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
         summary = "Get user participation statistics",
-        description = "Retrieves statistics about user participation and answer counts"
+        description = "Retrieves statistics about user participation and answer counts with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "403", description = "Access denied")
     })
-    public Mono<ResponseEntity<Object>> getUserParticipationStatistics() {
-        logger.info("Retrieving user participation statistics");
-        return adminService.getUserParticipationStatistics()
-                .collectList()
-                .map(stats -> {
-                    logger.debug("User participation statistics retrieved: {}", stats);
-                    Map<String, Object> response = Map.of(
-                        "status", "success",
-                        "data", stats
-                    );
-                    return ResponseEntity.ok((Object) response);
-                })
-                .doOnSuccess(response -> logger.info("User participation statistics retrieved successfully"))
-                .doOnError(e -> errorLogger.error("Error retrieving user participation statistics: {}", e.getMessage(), e));
+    public Mono<ResponseEntity<Object>> getUserParticipationStatistics(
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Retrieving user participation statistics with pagination - page: {}, size: {}", page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(
+                adminService.getUserParticipationStatistics(),
+                "user participation statistics",
+                page,
+                size
+            )
+            .doOnSuccess(response -> logger.info("User participation statistics retrieved successfully"))
+            .doOnError(e -> errorLogger.error("Error retrieving user participation statistics: {}", e.getMessage(), e));
     }
 } 

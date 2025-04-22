@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
@@ -46,7 +47,7 @@ public class UserController {
     @GetMapping
     @Operation(
         summary = "Get all users",
-        description = "Retrieves a list of all users"
+        description = "Retrieves a list of all users with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully",
@@ -55,13 +56,17 @@ public class UserController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @ResponseStatus(HttpStatus.OK)
-    public Mono<ResponseEntity<Object>> getAllUsers() {
-        logger.info("Retrieving all users");
-        return ResponseUtils.wrapFluxResponse(userService.getAllUsers(), "users")
-                .doOnSuccess(response -> logger.info("Successfully retrieved all users"))
+    public Mono<ResponseEntity<Object>> getAllUsers(
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Retrieving all users with pagination - page: {}, size: {}", page, size);
+        return ResponseUtils.wrapFluxResponsePaginated(userService.getAllUsers(), "users", page, size)
+                .doOnSuccess(response -> logger.info("Successfully retrieved paginated users"))
                 .doOnError(error -> {
-                    logger.warn("Failed to retrieve all users");
-                    errorLogger.error("Error retrieving all users: {}", error.getMessage(), error);
+                    logger.warn("Failed to retrieve paginated users");
+                    errorLogger.error("Error retrieving paginated users: {}", error.getMessage(), error);
                 });
     }
 

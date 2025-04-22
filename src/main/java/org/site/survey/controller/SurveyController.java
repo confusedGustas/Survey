@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
@@ -86,7 +87,7 @@ public class SurveyController {
     @GetMapping("/user")
     @Operation(
         summary = "Get all user surveys",
-        description = "Retrieves all surveys created by the current authenticated user"
+        description = "Retrieves all surveys created by the current authenticated user with optional pagination"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Surveys retrieved successfully",
@@ -94,8 +95,12 @@ public class SurveyController {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public Mono<ResponseEntity<Object>> getAllUserSurveys() {
-        logger.info("Retrieving all surveys for current user");
+    public Mono<ResponseEntity<Object>> getAllUserSurveys(
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Retrieving paginated surveys for current user - page: {}, size: {}", page, size);
         
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
@@ -104,7 +109,7 @@ public class SurveyController {
                 .flatMap(user -> {
                     logger.info("Fetching surveys for user ID: {}", user.getId());
                     Flux<SurveyResponseDTO> surveys = surveyService.getAllSurveysByUser(user.getId());
-                    return ResponseUtils.wrapFluxResponse(surveys, "surveys for user " + user.getId());
+                    return ResponseUtils.wrapFluxResponsePaginated(surveys, "surveys for user " + user.getId(), page, size);
                 })
                 .doOnError(error -> errorLogger.error("Failed to retrieve user surveys: {}", error.getMessage(), error));
     }
