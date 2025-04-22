@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SearchResultDTO {
     private String index;
-    private String id;
+    private Integer id;
     private String type;
     private Object content;
 } 

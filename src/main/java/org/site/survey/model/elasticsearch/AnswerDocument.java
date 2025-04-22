@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 
 import java.time.LocalDateTime;
 
@@ -32,6 +33,6 @@ public class AnswerDocument {
     @Field(type = FieldType.Boolean, name = "is_public")
     private Boolean isPublic;
     
-    @Field(type = FieldType.Date, name = "created_at")
+    @Field(type = FieldType.Date, name = "created_at", format = DateFormat.date_hour_minute_second)
     private LocalDateTime createdAt;
 } 

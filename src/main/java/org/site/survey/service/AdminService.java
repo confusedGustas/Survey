@@ -105,16 +105,16 @@ public class AdminService {
         elasticsearchDataIntegrity.validateSearchQuery(query);
         
         Flux<SearchResultDTO> surveyResults = searchSurveys(query)
-            .map(survey -> createSearchResult("surveys", survey.getId().toString(), "survey", survey));
+            .map(survey -> createSearchResult("surveys", survey.getId(), "survey", survey));
         
         Flux<SearchResultDTO> questionResults = searchQuestions(query)
-            .map(question -> createSearchResult("questions", question.getId().toString(), "question", question));
+            .map(question -> createSearchResult("questions", question.getId(), "question", question));
         
         Flux<SearchResultDTO> choiceResults = searchChoices(query)
-            .map(choice -> createSearchResult("choices", choice.getId().toString(), "choice", choice));
+            .map(choice -> createSearchResult("choices", choice.getId(), "choice", choice));
         
         return Flux.concat(surveyResults, questionResults, choiceResults)
-            .switchIfEmpty(Flux.just(createSearchResult("results", "0", "info", 
+            .switchIfEmpty(Flux.just(createSearchResult("results", 0, "info", 
                 Map.of("message", "No results found for query: " + query))))
             .doOnComplete(() -> logger.info("Search completed for query: {}", query))
             .onErrorResume(e -> {
@@ -123,7 +123,7 @@ public class AdminService {
             });
     }
     
-    private SearchResultDTO createSearchResult(String index, String id, String type, Object content) {
+    private SearchResultDTO createSearchResult(String index, Integer id, String type, Object content) {
         logger.debug("Creating search result: index={}, id={}, type={}", index, id, type);
         return SearchResultDTO.builder()
             .index(index)
