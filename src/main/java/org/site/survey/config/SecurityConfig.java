@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .pathMatchers(
                                 "/auth/login",
                                 "/auth/refresh",
+                                "/auth/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**"

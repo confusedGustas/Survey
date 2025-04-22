@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -87,5 +89,11 @@ public class AuthController {
                     logger.warn("Token refresh failed");
                     errorLogger.error("Token refresh error: {}", e.getMessage(), e);
                 });
+    }
+
+    @GetMapping("/health")
+    @Operation(summary = "Health check endpoint", description = "A simple health check endpoint that doesn't require authentication")
+    public Mono<Map<String, String>> healthCheck() {
+        return Mono.just(Map.of("status", "UP"));
     }
 } 

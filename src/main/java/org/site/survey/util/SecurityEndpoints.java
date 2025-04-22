@@ -8,6 +8,7 @@ public class SecurityEndpoints {
     public static final List<PublicEndpoint> PUBLIC_ENDPOINTS = Arrays.asList(
         new PublicEndpoint("/auth/login"),
         new PublicEndpoint("/auth/refresh"),
+        new PublicEndpoint("/auth/health"),
         new PublicEndpoint("/api/users", HttpMethod.POST),
         new PublicEndpoint("/swagger-ui"),
         new PublicEndpoint("/v3/api-docs"),
