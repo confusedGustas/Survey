@@ -110,9 +110,6 @@ class SurveyServiceTest {
                     .questions(List.of())
                     .build();
 
-            StepVerifier.create(surveyService.createSurvey(requestDTO, 1))
-                    .verifyComplete();
-
             Survey survey1 = Survey.builder()
                     .id(1)
                     .title("Survey 1")
@@ -170,10 +167,6 @@ class SurveyServiceTest {
             when(surveyMapper.mapToQuestionResponse(eq(question1), anyList())).thenReturn(questionResponseDTO1);
             when(surveyMapper.mapToSurveyResponse(eq(survey1), anyList())).thenReturn(surveyResponseDTO1);
             when(surveyMapper.mapToSurveyResponse(eq(survey2), anyList())).thenReturn(surveyResponseDTO2);
-
-            StepVerifier.create(surveyService.getAllSurveysByUser(1))
-                    .expectNext(surveyResponseDTO1, surveyResponseDTO2)
-                    .verifyComplete();
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize mocks", e);
         }
@@ -186,7 +179,18 @@ class SurveyServiceTest {
         requestDTO.setTitle("Test Survey");
         requestDTO.setDescription("Test Description");
         
+        SurveyResponseDTO expectedResponse = SurveyResponseDTO.builder()
+                .id(1)
+                .title("Test Survey")
+                .description("Test Description")
+                .createdBy(userId)
+                .build();
+        
+        when(surveyMapper.mapToSurveyResponse(any(Survey.class), eq(null)))
+                .thenReturn(expectedResponse);
+        
         StepVerifier.create(surveyService.createSurvey(requestDTO, userId))
+                .expectNext(expectedResponse)
                 .verifyComplete();
     }
     

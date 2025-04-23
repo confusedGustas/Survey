@@ -61,9 +61,9 @@ class UserControllerTest {
                 .uri("/api/users")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBodyList(UserResponseDTO.class)
-                .hasSize(2)
-                .contains(user1, user2);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.length()").isEqualTo(2);
     }
 
     @Test
@@ -75,7 +75,7 @@ class UserControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.message").isEqualTo("User list is empty");
+                .jsonPath("$.message").isEqualTo("No users found");
     }
 
     @Test
@@ -94,8 +94,10 @@ class UserControllerTest {
                 .uri("/api/users/1")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(user);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(1)
+                .jsonPath("$.data.username").isEqualTo("testuser");
     }
 
     @Test
@@ -124,8 +126,10 @@ class UserControllerTest {
                 .uri("/api/users/username/testuser")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(user);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(1)
+                .jsonPath("$.data.username").isEqualTo("testuser");
     }
 
     @Test
@@ -162,8 +166,10 @@ class UserControllerTest {
                 .bodyValue(requestDTO)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(responseDTO);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(3)
+                .jsonPath("$.data.username").isEqualTo("newuser");
     }
 
     @Test

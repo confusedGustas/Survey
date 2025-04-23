@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <appender name="NULL" class="ch.qos.logback.core.helpers.NOPAppender"/>
+
+    <logger name="org.site.survey" level="OFF"/>
+    <logger name="org.springframework" level="OFF"/>
+    <logger name="io.r2dbc" level="OFF"/>
+    <logger name="org.elasticsearch" level="OFF"/>
+    <logger name="reactor" level="OFF"/>
+    <logger name="org.hibernate" level="OFF"/>
+    <logger name="org.apache" level="OFF"/>
+    <logger name="org.flywaydb" level="OFF"/>
+    <logger name="com.zaxxer" level="OFF"/>
+
+    <root level="OFF">
+        <appender-ref ref="NULL"/>
+    </root>
+</configuration> 

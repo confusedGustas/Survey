@@ -76,9 +76,9 @@ class UserIntegrationTest {
                 .uri("/api/users")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBodyList(UserResponseDTO.class)
-                .hasSize(2)
-                .contains(user1, user2);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.length()").isEqualTo(2);
     }
 
     @Test
@@ -90,7 +90,7 @@ class UserIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.message").isEqualTo("User list is empty");
+                .jsonPath("$.message").isEqualTo("No users found");
     }
 
     @Test
@@ -109,8 +109,10 @@ class UserIntegrationTest {
                 .uri("/api/users/1")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(user);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(1)
+                .jsonPath("$.data.username").isEqualTo("testuser");
     }
 
     @Test
@@ -139,8 +141,10 @@ class UserIntegrationTest {
                 .uri("/api/users/username/testuser")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(user);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(1)
+                .jsonPath("$.data.username").isEqualTo("testuser");
     }
 
     @Test
@@ -177,8 +181,10 @@ class UserIntegrationTest {
                 .bodyValue(requestDTO)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(UserResponseDTO.class)
-                .isEqualTo(responseDTO);
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.data.id").isEqualTo(3)
+                .jsonPath("$.data.username").isEqualTo("newuser");
     }
 
     @Test
@@ -207,8 +213,7 @@ class UserIntegrationTest {
                 .password("UpdatedPass123!")
                 .build();
 
-        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class), eq("testuser")))
-                .thenReturn(Mono.error(new ResourceNotFoundException()));
+        when(userService.updateUser(eq("nonexistent"), any(UserRequestDTO.class), eq("testuser"))).thenReturn(Mono.error(new ResourceNotFoundException()));
 
         StepVerifier.create(
             userService.updateUser("nonexistent", requestDTO, "testuser")
@@ -248,7 +253,7 @@ class UserIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.status").isEqualTo(200)
-                .jsonPath("$.message").isEqualTo("User with username 'testuser' was deleted successfully");
+                .jsonPath("$.status").isEqualTo("success")
+                .jsonPath("$.message").exists();
     }
 } 

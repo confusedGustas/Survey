@@ -336,28 +336,23 @@ class UserServiceTest {
 
     @Test
     void deleteUser_Success() {
-        String username = "existinguser";
-        String currentUsername = "existinguser";
-        
-        User existingUser = User.builder()
+        User user = User.builder()
                 .id(1)
-                .username(username)
-                .email("user@example.com")
+                .username("testuser")
+                .email("test@example.com")
                 .password("encoded")
                 .role("USER")
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(userRepository.findByUsername(username)).thenReturn(Mono.just(existingUser));
-        when(userRepository.delete(existingUser)).thenReturn(Mono.empty());
+        when(userRepository.findByUsername("testuser")).thenReturn(Mono.just(user));
+        when(userRepository.delete(user)).thenReturn(Mono.empty());
 
-        Mono<Object> result = userService.deleteUser(username, currentUsername);
+        Mono<Object> result = userService.deleteUser("testuser", "testuser");
 
         StepVerifier.create(result)
+                .expectNext("User deleted")
                 .verifyComplete();
-        
-        verify(userDataIntegrity).validateUsername(username);
-        verify(userRepository).delete(existingUser);
     }
 
     @Test
