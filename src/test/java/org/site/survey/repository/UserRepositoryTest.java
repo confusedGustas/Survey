@@ -22,7 +22,6 @@ class UserRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Clean up any related records to avoid foreign key constraint issues
         databaseClient.sql("DELETE FROM answers").then().block();
         databaseClient.sql("DELETE FROM choices").then().block();
         databaseClient.sql("DELETE FROM questions").then().block();

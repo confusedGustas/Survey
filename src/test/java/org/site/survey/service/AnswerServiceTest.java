@@ -26,7 +26,6 @@ import org.site.survey.type.QuestionType;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -468,7 +467,6 @@ class AnswerServiceTest {
         when(questionRepository.findBySurveyId(surveyId)).thenReturn(Flux.just(question));
         when(answerRepository.save(any(Answer.class))).thenReturn(Mono.just(savedAnswer));
         
-        // Let's expect a NullPointerException in the current implementation
         StepVerifier.create(answerService.submitSurveyAnswersGrouped(requestDTO, userId))
                 .expectError(NullPointerException.class)
                 .verify();
