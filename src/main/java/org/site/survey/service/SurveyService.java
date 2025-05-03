@@ -178,26 +178,39 @@ public class SurveyService {
                 .doOnError(error -> errorLogger.error("Failed to create survey: {}", error.getMessage(), error));
     }
     
+    private Mono<SurveyResponseDTO> mapSurveyWithQuestionsAndChoices(Survey survey) {
+        return questionRepository.findBySurveyId(survey.getId())
+                .doOnNext(question -> logger.debug("Processing question ID: {} for survey ID: {}", question.getId(), survey.getId()))
+                .flatMap(question -> choiceRepository.findByQuestionId(question.getId())
+                        .map(surveyMapper::mapToChoiceResponse)
+                        .collectList()
+                        .map(choices -> surveyMapper.mapToQuestionResponse(question, choices)))
+                .collectList()
+                .map(questionResponses -> {
+                    logger.debug("Mapped survey ID: {} with {} questions", survey.getId(), questionResponses.size());
+                    return surveyMapper.mapToSurveyResponse(survey, questionResponses);
+                });
+    }
+    
     public Flux<SurveyResponseDTO> getAllSurveysByUser(Integer userId) {
         logger.info("Retrieving all surveys for user ID: {}", userId);
         surveyDataIntegrity.validateUserId(userId);
-        
         return surveyRepository.findByCreatedBy(userId)
-                .doOnNext(survey -> logger.debug("Found survey with ID: {}", survey.getId()))
-                .flatMap(survey -> questionRepository.findBySurveyId(survey.getId())
-                        .doOnNext(question -> logger.debug("Processing question ID: {} for survey ID: {}", 
-                                question.getId(), survey.getId()))
-                        .flatMap(question -> choiceRepository.findByQuestionId(question.getId())
-                                .map(surveyMapper::mapToChoiceResponse)
-                                .collectList()
-                                .map(choices -> surveyMapper.mapToQuestionResponse(question, choices)))
-                        .collectList()
-                        .map(questionResponses -> {
-                            logger.debug("Mapped survey ID: {} with {} questions", 
-                                    survey.getId(), questionResponses.size());
-                            return surveyMapper.mapToSurveyResponse(survey, questionResponses);
-                        }))
+                .doOnNext(SurveyService::foundLog)
+                .flatMap(this::mapSurveyWithQuestionsAndChoices)
                 .doOnComplete(() -> logger.info("Completed retrieving all surveys for user ID: {}", userId));
+    }
+
+    private static void foundLog(Survey survey) {
+        logger.debug("Found survey with ID: {}", survey.getId());
+    }
+
+    public Flux<SurveyResponseDTO> getAllSurveys() {
+        logger.info("Retrieving all surveys");
+        return surveyRepository.findAll()
+                .doOnNext(SurveyService::foundLog)
+                .flatMap(this::mapSurveyWithQuestionsAndChoices)
+                .doOnComplete(() -> logger.info("Completed retrieving all surveys"));
     }
     
     @Transactional

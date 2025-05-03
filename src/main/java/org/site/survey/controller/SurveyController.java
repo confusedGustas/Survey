@@ -144,4 +144,26 @@ public class SurveyController {
                 .doOnSuccess(result -> logger.info("Successfully deleted survey with ID: {}", id))
                 .doOnError(error -> errorLogger.error("Failed to delete survey with ID {}: {}", id, error.getMessage(), error));
     }
+
+    @GetMapping("/all")
+    @Operation(
+        summary = "Get all surveys",
+        description = "Retrieves all surveys with optional pagination"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Surveys retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SurveyResponseDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public Mono<ResponseEntity<Object>> getAllSurveys(
+            @Parameter(description = "Page number (0-based)", schema = @Schema(defaultValue = "0"))
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page size", schema = @Schema(defaultValue = "10"))
+            @RequestParam(required = false, defaultValue = "10") int size) {
+        logger.info("Retrieving paginated all surveys - page: {}, size: {}", page, size);
+        Flux<SurveyResponseDTO> surveys = surveyService.getAllSurveys();
+        return ResponseUtils.wrapFluxResponsePaginated(surveys, "all surveys", page, size)
+                .doOnError(error -> errorLogger.error("Failed to retrieve all surveys: {}", error.getMessage(), error));
+    }
 } 

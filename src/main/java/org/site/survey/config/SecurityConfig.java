@@ -14,6 +14,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import reactor.core.publisher.Mono;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -28,6 +29,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .cors(withDefaults())
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .exceptionHandling(exceptionHandlingSpec ->
                     exceptionHandlingSpec.authenticationEntryPoint((exchange, ex) ->
@@ -35,13 +37,15 @@ public class SecurityConfig {
                     .accessDeniedHandler((exchange, denied) ->
                         Mono.error(new AccessDeniedException()))
                 ).authorizeExchange(exchange -> exchange
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers(
                                 "/auth/login",
                                 "/auth/refresh",
                                 "/auth/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-resources/**"
+                                "/swagger-resources/**",
+                                "/api/surveys/all"
                         ).permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/users")
                         .permitAll()

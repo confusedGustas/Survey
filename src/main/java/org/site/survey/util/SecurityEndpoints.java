@@ -12,7 +12,8 @@ public class SecurityEndpoints {
         new PublicEndpoint("/api/users", HttpMethod.POST),
         new PublicEndpoint("/swagger-ui"),
         new PublicEndpoint("/v3/api-docs"),
-        new PublicEndpoint("/swagger-resources")
+        new PublicEndpoint("/swagger-resources"),
+        new PublicEndpoint("/api/surveys/all")
     );
 
     public static boolean isPublicEndpoint(String path, HttpMethod method) {

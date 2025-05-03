@@ -9,6 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsWebFilter;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class ApiGatewayConfig {
@@ -24,6 +27,21 @@ public class ApiGatewayConfig {
     @Bean
     public GlobalFilter swaggerBypassFilter() {
         return new SwaggerBypassFilter();
+    }
+
+    @Bean
+    public CorsWebFilter corsWebFilter() {
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowCredentials(true);
+        corsConfig.addAllowedOrigin("http://localhost:5173");
+        corsConfig.addAllowedHeader("*");
+        corsConfig.addAllowedMethod("*");
+        corsConfig.addExposedHeader("Authorization");
+        corsConfig.addExposedHeader("Content-Type");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", corsConfig);
+        return new CorsWebFilter(source);
     }
 
     private static class SwaggerBypassFilter implements GlobalFilter, Ordered {

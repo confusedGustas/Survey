@@ -1,0 +1,89 @@
+:root {
+  --color-primary: #181a1b;
+  --color-secondary: #008080;
+  --color-accent: #ffb347;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color-scheme: dark;
+  color: #e0e0e0;
+  background-color: var(--color-primary);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-primary);
+  color: #e0e0e0;
+}
+
+a {
+  color: var(--color-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: var(--color-accent);
+}
+
+button {
+  border-radius: 6px;
+  border: none;
+  padding: 0.7em 1.4em;
+  font-size: 1em;
+  font-weight: 500;
+  background: var(--color-secondary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover {
+  background: var(--color-accent);
+  color: var(--color-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #fff;
+  margin-top: 0;
+}
+
+input, textarea, select {
+  background: #232526;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.5em;
+  margin-bottom: 1em;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #232526;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 4px;
+}
+
+.card {
+  padding: 2em;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
