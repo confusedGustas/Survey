@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar">
     <router-link to="/" class="nav-link">Home</router-link>
-    <template v-if="!isLoggedIn">
+    <template v-if="!isAuthenticated">
       <router-link to="/login" class="nav-link">Login</router-link>
       <router-link to="/register" class="nav-link">Register</router-link>
     </template>
@@ -9,20 +9,22 @@
       <router-link to="/profile" class="nav-link">Profile</router-link>
       <router-link v-if="isAdmin" to="/users" class="nav-link">Users</router-link>
       <router-link v-if="isAdmin" to="/admin" class="nav-link">Admin</router-link>
-      <a href="#" class="nav-link" @click.prevent="logout">Logout</a>
+      <a href="#" class="nav-link" @click.prevent="handleLogout">Logout</a>
     </template>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { isAuthenticated, updateAuthState, logout } from '../utils/authEvents'
+import Cookies from 'js-cookie'
 
 const router = useRouter()
-const isLoggedIn = ref(!!localStorage.getItem('accessToken'))
+const route = useRoute()
 
 function getRoleFromToken() {
-  const token = localStorage.getItem('accessToken')
+  const token = Cookies.get('accessToken')
   if (!token) return ''
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
@@ -32,21 +34,35 @@ function getRoleFromToken() {
   }
 }
 
-const isAdmin = computed(() => isLoggedIn.value && getRoleFromToken() === 'ADMIN')
+const isAdmin = computed(() => isAuthenticated.value && getRoleFromToken() === 'ADMIN')
 
-function updateLoginState() {
-  isLoggedIn.value = !!localStorage.getItem('accessToken')
+function handleLogout() {
+  logout()
+  router.push('/')
 }
 
-function logout() {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  updateLoginState()
-  router.push('/login')
-}
+// Check authentication on every route change
+watch(() => route.path, () => {
+  updateAuthState()
+}, { immediate: true })
+
+// Check authentication every second to handle token expiration
+const authCheckInterval = setInterval(() => {
+  updateAuthState()
+}, 1000)
+
+// Clean up interval on component unmount
+onUnmounted(() => {
+  clearInterval(authCheckInterval)
+})
 
 onMounted(() => {
-  window.addEventListener('storage', updateLoginState)
+  updateAuthState()
+  
+  // Add a custom event listener for auth changes
+  window.addEventListener('auth-state-changed', () => {
+    updateAuthState()
+  })
 })
 </script>
 
@@ -71,4 +87,4 @@ onMounted(() => {
 .nav-link:hover {
   color: var(--color-accent);
 }
-</style> 
+</style>

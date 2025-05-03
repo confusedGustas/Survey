@@ -9,12 +9,16 @@
 import { ref } from 'vue'
 import LoginForm from './LoginForm.vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
+import { login, isAuthenticated } from '../utils/authEvents'
 
 const apiError = ref('')
+const router = useRouter()
 
 async function handleLogin({ username, password }: { username: string, password: string }) {
   apiError.value = ''
   try {
+    console.log('Login attempt with username:', username)
     const res = await axios.post('http://localhost:8080/auth/login', {
       username,
       password
@@ -22,15 +26,27 @@ async function handleLogin({ username, password }: { username: string, password:
       withCredentials: true,
       headers: { 'Content-Type': 'application/json' }
     })
+    
+    console.log('Login response status:', res.status)
     const data = res.data
+    
     if (data.accessToken) {
-      localStorage.setItem('accessToken', data.accessToken)
+      console.log('Login successful, received access token')
+      
+      // Use the centralized login function from authEvents
+      login(data.accessToken, data.refreshToken)
+      
+      // Wait a moment to ensure tokens are set before navigation
+      setTimeout(() => {
+        console.log('Navigating to profile page')
+        router.push('/profile')
+      }, 300)
+    } else {
+      console.error('No access token in response')
+      apiError.value = 'Authentication failed: Server did not return a token'
     }
-    if (data.refreshToken) {
-      localStorage.setItem('refreshToken', data.refreshToken)
-    }
-    window.location.href = '/profile'
   } catch (e: any) {
+    console.error('Login error:', e)
     apiError.value = e?.response?.data?.message || 'Login failed.'
   }
 }
@@ -48,4 +64,4 @@ async function handleLogin({ username, password }: { username: string, password:
   color: #ff4d4f;
   margin-top: 1rem;
 }
-</style> 
+</style>

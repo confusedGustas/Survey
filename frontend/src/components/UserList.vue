@@ -9,7 +9,6 @@
           <th>Username</th>
           <th>Email</th>
           <th>Role</th>
-          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -17,12 +16,9 @@
           <td>{{ user.username }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.role }}</td>
-          <td>
-            <button class="delete-btn" @click="deleteUser(user.username)" :disabled="deleting === user.username">Delete</button>
-          </td>
         </tr>
         <tr v-if="users.length === 0">
-          <td colspan="4">No users found.</td>
+          <td colspan="3">No users found.</td>
         </tr>
       </tbody>
     </table>
@@ -37,6 +33,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 const users = ref<any[]>([])
 const loading = ref(true)
@@ -44,13 +41,12 @@ const error = ref('')
 const page = ref(0)
 const size = ref(10)
 const totalPages = ref(1)
-const deleting = ref('')
 
 async function fetchUsers() {
   loading.value = true
   error.value = ''
   try {
-    const token = localStorage.getItem('accessToken')
+    const token = Cookies.get('accessToken')
     const res = await axios.get(`http://localhost:8080/api/users?page=${page.value}&size=${size.value}`,
       { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
     users.value = res.data.data || []
@@ -59,21 +55,6 @@ async function fetchUsers() {
     error.value = e?.response?.data?.message || 'Failed to fetch users.'
   } finally {
     loading.value = false
-  }
-}
-
-async function deleteUser(username: string) {
-  if (!confirm(`Delete user '${username}'?`)) return
-  deleting.value = username
-  try {
-    const token = localStorage.getItem('accessToken')
-    await axios.delete(`http://localhost:8080/api/users/${username}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
-    await fetchUsers()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || 'Failed to delete user.'
-  } finally {
-    deleting.value = ''
   }
 }
 
@@ -112,21 +93,6 @@ watch([page, size], fetchUsers)
   color: var(--color-accent);
   font-weight: 700;
 }
-.delete-btn {
-  background: #ff4d4f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.4em 1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-.delete-btn:disabled {
-  background: #444;
-  color: #888;
-  cursor: not-allowed;
-}
 .loading {
   color: var(--color-secondary);
 }
@@ -138,6 +104,7 @@ watch([page, size], fetchUsers)
   display: flex;
   gap: 1.5rem;
   align-items: center;
+  justify-content: center;
 }
 .pagination button {
   background: var(--color-secondary);
@@ -154,4 +121,4 @@ watch([page, size], fetchUsers)
   color: #888;
   cursor: not-allowed;
 }
-</style> 
+</style>

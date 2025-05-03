@@ -38,6 +38,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import Cookies from 'js-cookie'
 
 const user = ref<any>({})
 const loading = ref(true)
@@ -51,10 +52,10 @@ const surveysError = ref('')
 const page = ref(0)
 const size = ref(10)
 const totalPages = ref(1)
-const isLoggedIn = computed(() => !!localStorage.getItem('accessToken'))
+const isLoggedIn = computed(() => !!Cookies.get('accessToken'))
 
 function getUsernameFromToken() {
-  const token = localStorage.getItem('accessToken')
+  const token = Cookies.get('accessToken')
   if (!token) return ''
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
@@ -64,9 +65,21 @@ function getUsernameFromToken() {
   }
 }
 
+function validateToken() {
+  const token = Cookies.get('accessToken');
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp > now; // Check if token is expired
+  } catch {
+    return false;
+  }
+}
+
 function logout() {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
+  Cookies.remove('accessToken')
+  Cookies.remove('refreshToken')
   router.push('/login')
 }
 
@@ -74,7 +87,7 @@ async function fetchUserSurveys() {
   surveysLoading.value = true
   surveysError.value = ''
   try {
-    const token = localStorage.getItem('accessToken')
+    const token = Cookies.get('accessToken')
     const res = await axios.get(`http://localhost:8080/api/surveys/user?page=${page.value}&size=${size.value}`,
       {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -82,6 +95,10 @@ async function fetchUserSurveys() {
       })
     surveys.value = res.data.data || []
     totalPages.value = res.data.pagination?.totalPages || 1
+
+    // Store tokens in cookies if present in the response
+    if (res.data.accessToken) Cookies.set('accessToken', res.data.accessToken)
+    if (res.data.refreshToken) Cookies.set('refreshToken', res.data.refreshToken)
   } catch (e: any) {
     surveysError.value = e?.response?.data?.message || 'Failed to fetch surveys.'
   } finally {
@@ -97,7 +114,7 @@ function nextPage() {
 }
 
 onMounted(async () => {
-  if (!isLoggedIn.value) {
+  if (!isLoggedIn.value || !validateToken()) {
     redirecting.value = true
     await router.replace('/')
     return
@@ -111,12 +128,17 @@ onMounted(async () => {
     return
   }
   try {
-    const token = localStorage.getItem('accessToken')
+    const token = Cookies.get('accessToken')
     const res = await axios.get(`http://localhost:8080/api/users/username/${username}`, {
       headers: { 'Authorization': `Bearer ${token}` },
       withCredentials: true
     })
     user.value = res.data.data || {}
+
+    // Store tokens in cookies if present in the response
+    if (res.data.accessToken) Cookies.set('accessToken', res.data.accessToken)
+    if (res.data.refreshToken) Cookies.set('refreshToken', res.data.refreshToken)
+
     await fetchUserSurveys()
   } catch (e: any) {
     error.value = e?.response?.data?.message || 'Failed to fetch profile.'
@@ -231,4 +253,4 @@ watch([page, size], fetchUserSurveys)
   background: var(--color-secondary);
   color: #fff;
 }
-</style> 
+</style>

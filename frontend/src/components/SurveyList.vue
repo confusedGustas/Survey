@@ -18,17 +18,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 const surveys = ref<any[]>([])
 const loading = ref(true)
 const error = ref('')
-const isLoggedIn = computed(() => !!localStorage.getItem('accessToken'))
+const isLoggedIn = computed(() => !!Cookies.get('accessToken'))
 
 onMounted(async () => {
   loading.value = true
   error.value = ''
   try {
-    const token = localStorage.getItem('accessToken')
+    const token = Cookies.get('accessToken')
     const res = await axios.get('http://localhost:8080/api/surveys/user', {
       headers: { 'Authorization': `Bearer ${token}` },
       withCredentials: true
@@ -88,4 +89,4 @@ onMounted(async () => {
 .error {
   color: #ff4d4f;
 }
-</style> 
+</style>

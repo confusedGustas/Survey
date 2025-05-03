@@ -4,11 +4,11 @@
     <form @submit.prevent="onCreate">
       <div class="form-row">
         <label>Survey Title</label>
-        <input v-model="title" type="text" placeholder="Survey Title" required />
+        <input v-model="title" type="text" placeholder="Survey Title" required maxlength="100" />
       </div>
       <div class="form-row">
         <label>Survey Description</label>
-        <textarea v-model="description" placeholder="Survey Description" rows="3" required></textarea>
+        <textarea v-model="description" placeholder="Survey Description" rows="3" required maxlength="500"></textarea>
       </div>
       <div class="questions-section">
         <div class="questions-header">
@@ -23,7 +23,7 @@
           </div>
           <div class="form-row">
             <label>Content</label>
-            <input v-model="q.content" type="text" placeholder="Question content" required />
+            <input v-model="q.content" type="text" placeholder="Question content" required maxlength="200" />
           </div>
           <div class="form-row">
             <label>Type</label>
@@ -38,7 +38,7 @@
               <label>Choices</label>
               <div class="choices-list">
                 <div v-for="(choice, cidx) in q.choices" :key="cidx" class="choice-row">
-                  <input v-model="q.choices[cidx]" type="text" placeholder="Choice text" required class="choice-input" />
+                  <input v-model="q.choices[cidx]" type="text" placeholder="Choice text" required class="choice-input" maxlength="100" />
                   <button type="button" class="icon-btn remove-choice-btn" @click="removeChoice(idx, cidx)" title="Remove choice">
                     <span aria-hidden="true">✕</span>
                   </button>
@@ -67,6 +67,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import Cookies from 'js-cookie'
 
 const title = ref('')
 const description = ref('')
@@ -105,7 +106,7 @@ async function onCreate() {
     }
   }
   try {
-    const token = localStorage.getItem('accessToken')
+    const token = Cookies.get('accessToken')
     const payload = {
       title: title.value,
       description: description.value,
@@ -135,9 +136,11 @@ async function onCreate() {
   padding: 2.5rem 2.5rem 2rem 2.5rem;
   border-radius: 18px;
   box-shadow: 0 6px 32px 0 rgba(0,0,0,0.22);
-  max-width: 720px;
+  width: 900px;
+  max-width: 90vw;
   margin: 2.5rem auto;
   position: relative;
+  overflow: hidden;
 }
 .survey-create-form h2 {
   color: var(--color-accent);
@@ -172,12 +175,13 @@ async function onCreate() {
   transition: border 0.2s, box-shadow 0.2s;
   outline: none;
   font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
 }
-.form-row input:focus,
-.form-row textarea:focus,
-.form-row select:focus {
-  border: 1.5px solid var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.12);
+.form-row textarea {
+  resize: vertical;
+  max-height: 200px;
+  min-height: 80px;
 }
 .questions-section {
   margin: 2.5rem 0 2.2rem 0;
@@ -204,6 +208,7 @@ async function onCreate() {
   border: 1.5px solid #292929;
   position: relative;
   transition: box-shadow 0.2s, border 0.2s;
+  overflow: hidden;
 }
 .question-card:hover {
   box-shadow: 0 8px 32px 0 rgba(255,140,0,0.10);
@@ -274,6 +279,8 @@ async function onCreate() {
   margin-bottom: 0.1rem;
   transition: border 0.2s, box-shadow 0.2s;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 .choice-input:focus {
   border: 1.5px solid var(--color-accent);
@@ -384,8 +391,9 @@ async function onCreate() {
 }
 @media (max-width: 900px) {
   .survey-create-form {
-    padding: 1.2rem 0.5rem 1.2rem 0.5rem;
-    max-width: 98vw;
+    padding: 1.2rem 1rem 1.2rem 1rem;
+    max-width: 95vw;
+    width: auto;
   }
   .fab-add-question {
     right: 1.2rem;
@@ -411,4 +419,4 @@ async function onCreate() {
   background: var(--color-accent);
   color: var(--color-primary);
 }
-</style> 
+</style>
