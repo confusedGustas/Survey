@@ -7,6 +7,7 @@ import ProfilePage from '../components/ProfilePage.vue';
 import SurveyCreate from '../components/SurveyCreate.vue';
 import UserList from '../components/UserList.vue';
 import AdminDashboard from '../components/AdminDashboard.vue';
+import SurveyPage from '../components/SurveyPage.vue';
 import { validateToken } from '../utils/authEvents';
 
 const routes: RouteRecordRaw[] = [
@@ -31,6 +32,11 @@ const routes: RouteRecordRaw[] = [
     component: SurveyCreate,
   },
   {
+    path: '/surveys/:id',
+    name: 'SurveyView',
+    component: SurveyPage,
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: ProfilePage,
@@ -53,7 +59,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const publicPages = ['/', '/login', '/register']; // Define public pages
+  const publicPages = ['/', '/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
   const tokenValid = validateToken();
   
@@ -61,7 +67,6 @@ router.beforeEach((to, from, next) => {
 
   if (authRequired && !tokenValid) {
     console.log('Unauthorized access attempt, redirecting to landing page');
-    // Redirect to the landing page if the token is invalid or missing
     return next('/');
   }
 

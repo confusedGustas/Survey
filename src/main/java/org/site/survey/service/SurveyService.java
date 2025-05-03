@@ -213,6 +213,24 @@ public class SurveyService {
                 .doOnComplete(() -> logger.info("Completed retrieving all surveys"));
     }
     
+    public Mono<SurveyResponseDTO> getSurveyById(Integer id) {
+        logger.info("Retrieving survey by ID: {}", id);
+        surveyDataIntegrity.validateSurveyId(id);
+        
+        return surveyRepository.findById(id)
+                .switchIfEmpty(Mono.error(new SurveyNotFoundException()))
+                .doOnNext(SurveyService::foundLog)
+                .flatMap(this::mapSurveyWithQuestionsAndChoices)
+                .doOnSuccess(surveyDto -> logger.info("Successfully retrieved survey with ID: {}", id))
+                .doOnError(error -> {
+                    if (error instanceof SurveyNotFoundException) {
+                        logger.warn("Survey not found with ID: {}", id);
+                    } else {
+                        errorLogger.error("Error retrieving survey with ID {}: {}", id, error.getMessage(), error);
+                    }
+                });
+    }
+    
     @Transactional
     public Mono<Void> deleteSurvey(Integer id, Integer userId) {
         logger.info("Attempting to delete survey ID: {} by user ID: {}", id, userId);
@@ -265,4 +283,4 @@ public class SurveyService {
                 })
                 .doOnError(error -> errorLogger.error("Failed to delete survey ID {}: {}", id, error.getMessage(), error));
     }
-} 
+}

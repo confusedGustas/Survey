@@ -1,6 +1,5 @@
 package org.site.survey.controller;
 
-import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -8,10 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.Logger;
 import org.site.survey.dto.request.SurveyRequestDTO;
 import org.site.survey.dto.response.SurveyResponseDTO;
+import org.site.survey.exception.SurveyNotFoundException;
 import org.site.survey.model.User;
 import org.site.survey.service.SurveyService;
 import org.site.survey.util.LoggerUtil;
@@ -166,4 +167,40 @@ public class SurveyController {
         return ResponseUtils.wrapFluxResponsePaginated(surveys, "all surveys", page, size)
                 .doOnError(error -> errorLogger.error("Failed to retrieve all surveys: {}", error.getMessage(), error));
     }
-} 
+
+    @GetMapping("/{id}")
+    @Operation(
+        summary = "Get survey by ID",
+        description = "Retrieves a specific survey by its ID with all questions and choices"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Survey retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SurveyResponseDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Survey not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public Mono<ResponseEntity<Object>> getSurveyById(
+            @Parameter(description = "ID of the survey to retrieve", required = true)
+            @PathVariable Integer id) {
+        logger.info("Retrieving survey with ID: {}", id);
+        
+        return surveyService.getSurveyById(id)
+                .map(survey -> {
+                    logger.info("Survey retrieved successfully with ID: {}", id);
+                    Map<String, Object> response = Map.of(
+                        "status", "success",
+                        "data", survey
+                    );
+                    return ResponseEntity.ok((Object) response);
+                })
+                .onErrorResume(SurveyNotFoundException.class, error -> {
+                    logger.warn("Survey not found with ID: {}", id);
+                    Map<String, Object> response = Map.of(
+                        "status", "error",
+                        "message", "Survey not found with ID: " + id
+                    );
+                    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body((Object) response));
+                })
+                .doOnError(error -> errorLogger.error("Error retrieving survey with ID {}: {}", id, error.getMessage(), error));
+    }
+}

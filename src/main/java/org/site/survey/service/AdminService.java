@@ -139,7 +139,8 @@ public class AdminService {
         
         if (surveyElasticsearchRepository != null) {
             logger.debug("Using Elasticsearch for survey search");
-            return surveyElasticsearchRepository.findByTitleContainingOrDescriptionContaining(query, query)
+            // Use the new multi-word search method instead of the original one
+            return surveyElasticsearchRepository.findByTitleOrDescriptionWithMultiWord(query)
                 .switchIfEmpty(Flux.defer(() -> {
                     logger.info("No surveys found matching query: {}", query);
                     return Flux.empty();
@@ -181,7 +182,8 @@ public class AdminService {
         
         if (questionElasticsearchRepository != null) {
             logger.debug("Using Elasticsearch for question search");
-            return questionElasticsearchRepository.findByContentContaining(query)
+            // Use the new multi-word search method
+            return questionElasticsearchRepository.findByContentWithMultiWord(query)
                 .switchIfEmpty(Flux.defer(() -> {
                     logger.info("No questions found matching query: {}", query);
                     return Flux.empty();
@@ -217,7 +219,8 @@ public class AdminService {
         
         if (choiceElasticsearchRepository != null) {
             logger.debug("Using Elasticsearch for choice search");
-            return choiceElasticsearchRepository.findByChoiceTextContaining(query)
+            // Use the new multi-word search method
+            return choiceElasticsearchRepository.findByChoiceTextWithMultiWord(query)
                 .switchIfEmpty(Flux.defer(() -> {
                     logger.info("No choices found matching query: {}", query);
                     return Flux.empty();

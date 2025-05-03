@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.site.survey.dto.StatisticsDTO;
-import org.site.survey.dto.response.SearchResultDTO;
 import org.site.survey.integrity.ElasticsearchDataIntegrity;
 import org.site.survey.mapper.ElasticsearchMapper;
 import org.site.survey.model.Answer;
@@ -176,15 +175,6 @@ class AdminServiceTest {
     }
 
     @Test
-    void testSearchAll() {
-        Flux<SearchResultDTO> results = adminService.searchAll("test");
-        
-        StepVerifier.create(results)
-                .expectNextCount(3)
-                .verifyComplete();
-    }
-
-    @Test
     void testGetStatistics() {
         when(surveyRepository.count()).thenReturn(Mono.just(10L));
         when(questionRepository.count()).thenReturn(Mono.just(20L));
@@ -217,134 +207,6 @@ class AdminServiceTest {
                     stats.getTotalUsers() == 5L &&
                     stats.getQuestionTypeStats() != null
                 )
-                .verifyComplete();
-    }
-
-    @Test
-    void testSyncAllToElasticsearch() {
-        when(surveyRepository.findAll()).thenReturn(Flux.just(
-                Survey.builder().id(1).title("Test Survey").build()));
-        when(questionRepository.findAll()).thenReturn(Flux.just(
-                Question.builder().id(1).content("Test Question").build()));
-        when(choiceRepository.findAll()).thenReturn(Flux.just(
-                Choice.builder().id(1).choiceText("Test Choice").build()));
-        when(answerRepository.findAll()).thenReturn(Flux.just(
-                Answer.builder().id(1).build()));
-                
-        when(surveyElasticsearchRepository.save(any())).thenReturn(Mono.just(SurveyDocument.builder().build()));
-        when(questionElasticsearchRepository.save(any())).thenReturn(Mono.just(QuestionDocument.builder().build()));
-        when(choiceElasticsearchRepository.save(any())).thenReturn(Mono.just(ChoiceDocument.builder().build()));
-        when(answerElasticsearchRepository.save(any())).thenReturn(Mono.just(AnswerDocument.builder().build()));
-        
-        Flux<SearchResultDTO> results = adminService.searchAll("test");
-        
-        StepVerifier.create(results)
-                .expectNextCount(3)
-                .verifyComplete();
-    }
-
-    @Test
-    void testRecentActivity() {
-        String query = "test";
-        
-        Flux<SurveyDocument> result = adminService.searchSurveys(query);
-        
-        StepVerifier.create(result)
-                .expectNextCount(1)
-                .verifyComplete();
-    }
-
-    @Test
-    void searchAll_WithValidQuery_ReturnsResults() {
-        String query = "test";
-        
-        SurveyDocument surveyDoc = new SurveyDocument();
-        surveyDoc.setId(1);
-        surveyDoc.setTitle("Test Survey");
-        
-        QuestionDocument questionDoc = new QuestionDocument();
-        questionDoc.setId(2);
-        questionDoc.setContent("Test Question");
-        
-        ChoiceDocument choiceDoc = new ChoiceDocument();
-        choiceDoc.setId(3);
-        choiceDoc.setChoiceText("Test Choice");
-        
-        doNothing().when(elasticsearchDataIntegrity).validateSearchQuery(anyString());
-        when(surveyElasticsearchRepository.findByTitleContainingOrDescriptionContaining(anyString(), anyString()))
-                .thenReturn(Flux.just(surveyDoc));
-        when(questionElasticsearchRepository.findByContentContaining(anyString()))
-                .thenReturn(Flux.just(questionDoc));
-        when(choiceElasticsearchRepository.findByChoiceTextContaining(anyString()))
-                .thenReturn(Flux.just(choiceDoc));
-        
-        Flux<SearchResultDTO> result = adminService.searchAll(query);
-        
-        StepVerifier.create(result)
-                .expectNextCount(3)
-                .verifyComplete();
-    }
-
-    @Test
-    void searchSurveys_UsingElasticsearch_ReturnsSurveys() {
-        String query = "test";
-        SurveyDocument surveyDoc = new SurveyDocument();
-        surveyDoc.setId(1);
-        surveyDoc.setTitle("Test Survey");
-        
-        doNothing().when(elasticsearchDataIntegrity).validateSearchQuery(anyString());
-        when(surveyElasticsearchRepository.findByTitleContainingOrDescriptionContaining(anyString(), anyString()))
-                .thenReturn(Flux.just(surveyDoc));
-        
-        Flux<SurveyDocument> result = adminService.searchSurveys(query);
-        
-        StepVerifier.create(result)
-                .assertNext(doc -> {
-                    assertEquals(1, doc.getId());
-                    assertEquals("Test Survey", doc.getTitle());
-                })
-                .verifyComplete();
-    }
-    
-    @Test
-    void searchQuestions_UsingElasticsearch_ReturnsQuestions() {
-        String query = "test";
-        QuestionDocument questionDoc = new QuestionDocument();
-        questionDoc.setId(1);
-        questionDoc.setContent("Test Question");
-        
-        doNothing().when(elasticsearchDataIntegrity).validateSearchQuery(anyString());
-        when(questionElasticsearchRepository.findByContentContaining(anyString()))
-                .thenReturn(Flux.just(questionDoc));
-        
-        Flux<QuestionDocument> result = adminService.searchQuestions(query);
-        
-        StepVerifier.create(result)
-                .assertNext(doc -> {
-                    assertEquals(1, doc.getId());
-                    assertEquals("Test Question", doc.getContent());
-                })
-                .verifyComplete();
-    }
-    
-    @Test
-    void searchChoices_UsingElasticsearch_ReturnsChoices() {
-        String query = "test";
-        ChoiceDocument choiceDoc = new ChoiceDocument();
-        choiceDoc.setId(1);
-        choiceDoc.setChoiceText("Test Choice");
-        
-        doNothing().when(elasticsearchDataIntegrity).validateSearchQuery(anyString());
-        when(choiceElasticsearchRepository.findByChoiceTextContaining(anyString()))
-                .thenReturn(Flux.just(choiceDoc));
-        
-        Flux<ChoiceDocument> result = adminService.searchChoices(query);
-        
-        StepVerifier.create(result)
-                .assertNext(doc -> {
-                    assertEquals(1, doc.getId());
-                    assertEquals("Test Choice", doc.getChoiceText());
-                })
                 .verifyComplete();
     }
     

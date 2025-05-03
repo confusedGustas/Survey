@@ -21,7 +21,7 @@
       <div v-else-if="surveysError" class="error">{{ surveysError }}</div>
       <ul v-else class="survey-list">
         <li v-for="survey in surveys" :key="survey.id" class="survey-item">
-          <span>{{ survey.title }}</span>
+          <router-link :to="`/surveys/${survey.id}`" class="survey-title">{{ survey.title }}</router-link>
         </li>
         <li v-if="surveys.length === 0">No surveys found.</li>
       </ul>
@@ -207,6 +207,34 @@ watch([page, size], fetchUserSurveys)
 }
 .survey-item:last-child {
   border-bottom: none;
+}
+.survey-title {
+  color: var(--color-secondary);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: block;
+}
+
+.survey-title:hover {
+  color: var(--color-accent);
+}
+.survey-actions {
+  margin-top: 0.5rem;
+}
+.view-survey-btn {
+  background: var(--color-accent);
+  color: var(--color-primary);
+  border-radius: 6px;
+  padding: 0.3em 0.8em;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.view-survey-btn:hover {
+  background: var(--color-secondary);
+  color: #fff;
 }
 .loading {
   color: var(--color-secondary);

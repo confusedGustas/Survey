@@ -151,6 +151,222 @@
         </div>
       </div>
 
+      <div v-else-if="currentTab === 'Questions by Survey'">
+        <h3>Search Questions by Survey ID</h3>
+        <form @submit.prevent="onQuestionsBySurveySearch" class="search-form">
+          <input v-model="questionsBySurveyId" type="number" min="1" placeholder="Enter Survey ID..." class="search-input" />
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div v-if="questionsBySurveyLoading" class="loading">Loading...</div>
+        <div v-else-if="questionsBySurveyError" class="error">{{ questionsBySurveyError }}</div>
+        <div v-else-if="questionsBySurveyResults.length" class="results-container">
+          <div v-for="q in questionsBySurveyResults" :key="q.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Question</span>
+              <span class="result-id">ID: {{ q.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Survey ID:</strong> {{ q.surveyId }}</div>
+              <div><strong>Content:</strong> {{ q.content }}</div>
+              <div><strong>Type:</strong> {{ q.questionType }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="questionsBySurveyResults.length === 0 && questionsBySurveyId && !questionsBySurveyLoading">No questions found for this survey.</div>
+        <div class="pagination" v-if="questionsBySurveyTotalPages > 1">
+          <button :disabled="questionsBySurveyPage === 0" @click="questionsBySurveyPrevPage">Prev</button>
+          <span>Page {{ questionsBySurveyPage + 1 }} of {{ questionsBySurveyTotalPages }}</span>
+          <button :disabled="questionsBySurveyPage === questionsBySurveyTotalPages - 1" @click="questionsBySurveyNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'Questions by Type'">
+        <h3>Search Questions by Type</h3>
+        <form @submit.prevent="onQuestionsByTypeSearch" class="search-form">
+          <select v-model="questionsByTypeQuery" class="search-input">
+            <option value="">Select a question type...</option>
+            <option value="TEXT">TEXT</option>
+            <option value="MULTIPLE">MULTIPLE</option>
+            <option value="SINGLE">SINGLE</option>
+            <option value="RATING">RATING</option>
+            <option value="BOOLEAN">BOOLEAN</option>
+          </select>
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div v-if="questionsByTypeLoading" class="loading">Loading...</div>
+        <div v-else-if="questionsByTypeError" class="error">{{ questionsByTypeError }}</div>
+        <div v-else-if="questionsByTypeResults.length" class="results-container">
+          <div v-for="q in questionsByTypeResults" :key="q.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Question</span>
+              <span class="result-id">ID: {{ q.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Survey ID:</strong> {{ q.surveyId }}</div>
+              <div><strong>Content:</strong> {{ q.content }}</div>
+              <div><strong>Type:</strong> {{ q.questionType }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="questionsByTypeResults.length === 0 && questionsByTypeQuery && !questionsByTypeLoading">No questions found with this type.</div>
+        <div class="pagination" v-if="questionsByTypeTotalPages > 1">
+          <button :disabled="questionsByTypePage === 0" @click="questionsByTypePrevPage">Prev</button>
+          <span>Page {{ questionsByTypePage + 1 }} of {{ questionsByTypeTotalPages }}</span>
+          <button :disabled="questionsByTypePage === questionsByTypeTotalPages - 1" @click="questionsByTypeNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'Choices by Question'">
+        <h3>Search Choices by Question ID</h3>
+        <form @submit.prevent="onChoicesByQuestionSearch" class="search-form">
+          <input v-model="choicesByQuestionId" type="number" min="1" placeholder="Enter Question ID..." class="search-input" />
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div v-if="choicesByQuestionLoading" class="loading">Loading...</div>
+        <div v-else-if="choicesByQuestionError" class="error">{{ choicesByQuestionError }}</div>
+        <div v-else-if="choicesByQuestionResults.length" class="results-container">
+          <div v-for="c in choicesByQuestionResults" :key="c.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Choice</span>
+              <span class="result-id">ID: {{ c.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Question ID:</strong> {{ c.questionId }}</div>
+              <div><strong>Text:</strong> {{ c.choiceText || c.text }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="choicesByQuestionResults.length === 0 && choicesByQuestionId && !choicesByQuestionLoading">No choices found for this question.</div>
+        <div class="pagination" v-if="choicesByQuestionTotalPages > 1">
+          <button :disabled="choicesByQuestionPage === 0" @click="choicesByQuestionPrevPage">Prev</button>
+          <span>Page {{ choicesByQuestionPage + 1 }} of {{ choicesByQuestionTotalPages }}</span>
+          <button :disabled="choicesByQuestionPage === choicesByQuestionTotalPages - 1" @click="choicesByQuestionNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'Answers by User'">
+        <h3>Search Answers by User ID</h3>
+        <form @submit.prevent="onAnswersByUserSearch" class="search-form">
+          <input v-model="answersByUserId" type="number" min="1" placeholder="Enter User ID..." class="search-input" />
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div v-if="answersByUserLoading" class="loading">Loading...</div>
+        <div v-else-if="answersByUserError" class="error">{{ answersByUserError }}</div>
+        <div v-else-if="answersByUserResults.length" class="results-container">
+          <div v-for="a in answersByUserResults" :key="a.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Answer</span>
+              <span class="result-id">ID: {{ a.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Question ID:</strong> {{ a.questionId }}</div>
+              <div><strong>User ID:</strong> {{ a.userId }}</div>
+              <div><strong>Choice ID:</strong> {{ a.choiceId }}</div>
+              <div><strong>Public:</strong> {{ a.isPublic ? 'Yes' : 'No' }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="answersByUserResults.length === 0 && answersByUserId && !answersByUserLoading">No answers found for this user.</div>
+        <div class="pagination" v-if="answersByUserTotalPages > 1">
+          <button :disabled="answersByUserPage === 0" @click="answersByUserPrevPage">Prev</button>
+          <span>Page {{ answersByUserPage + 1 }} of {{ answersByUserTotalPages }}</span>
+          <button :disabled="answersByUserPage === answersByUserTotalPages - 1" @click="answersByUserNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'Public Answers'">
+        <h3>Public Answers</h3>
+        <div class="search-form">
+          <button type="button" class="search-btn" @click="onPublicAnswersSearch">Load Public Answers</button>
+        </div>
+        <div v-if="publicAnswersLoading" class="loading">Loading...</div>
+        <div v-else-if="publicAnswersError" class="error">{{ publicAnswersError }}</div>
+        <div v-else-if="publicAnswersResults.length" class="results-container">
+          <div v-for="a in publicAnswersResults" :key="a.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Answer</span>
+              <span class="result-id">ID: {{ a.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Question ID:</strong> {{ a.questionId }}</div>
+              <div><strong>User ID:</strong> {{ a.userId }}</div>
+              <div><strong>Choice ID:</strong> {{ a.choiceId }}</div>
+              <div><strong>Public:</strong> {{ a.isPublic ? 'Yes' : 'No' }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="publicAnswersResults.length === 0 && !publicAnswersLoading">No public answers found.</div>
+        <div class="pagination" v-if="publicAnswersTotalPages > 1">
+          <button :disabled="publicAnswersPage === 0" @click="publicAnswersPrevPage">Prev</button>
+          <span>Page {{ publicAnswersPage + 1 }} of {{ publicAnswersTotalPages }}</span>
+          <button :disabled="publicAnswersPage === publicAnswersTotalPages - 1" @click="publicAnswersNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'Answers by Q&U'">
+        <h3>Search Answers by Question ID and User ID</h3>
+        <form @submit.prevent="onAnswersByQuestionAndUserSearch" class="search-form dual-input">
+          <div class="input-group">
+            <label for="questionId">Question ID: </label>
+            <input id="questionId" v-model="answersByQuestionAndUserId.questionId" type="number" min="1" placeholder="Enter Question ID..." class="search-input" />
+          </div>
+          <div class="input-group">
+            <label for="userId">User ID: </label>
+            <input id="userId" v-model="answersByQuestionAndUserId.userId" type="number" min="1" placeholder="Enter User ID..." class="search-input" />
+          </div>
+          <button type="submit" class="search-btn">Search</button>
+        </form>
+        <div v-if="answersByQuestionAndUserLoading" class="loading">Loading...</div>
+        <div v-else-if="answersByQuestionAndUserError" class="error">{{ answersByQuestionAndUserError }}</div>
+        <div v-else-if="answersByQuestionAndUserResults.length" class="results-container">
+          <div v-for="a in answersByQuestionAndUserResults" :key="a.id" class="result-card">
+            <div class="result-header">
+              <span class="result-type">Answer</span>
+              <span class="result-id">ID: {{ a.id }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Question ID:</strong> {{ a.questionId }}</div>
+              <div><strong>User ID:</strong> {{ a.userId }}</div>
+              <div><strong>Choice ID:</strong> {{ a.choiceId }}</div>
+              <div><strong>Public:</strong> {{ a.isPublic ? 'Yes' : 'No' }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="answersByQuestionAndUserResults.length === 0 && answersByQuestionAndUserId.questionId && answersByQuestionAndUserId.userId && !answersByQuestionAndUserLoading">No answers found for this question and user combination.</div>
+        <div class="pagination" v-if="answersByQuestionAndUserTotalPages > 1">
+          <button :disabled="answersByQuestionAndUserPage === 0" @click="answersByQuestionAndUserPrevPage">Prev</button>
+          <span>Page {{ answersByQuestionAndUserPage + 1 }} of {{ answersByQuestionAndUserTotalPages }}</span>
+          <button :disabled="answersByQuestionAndUserPage === answersByQuestionAndUserTotalPages - 1" @click="answersByQuestionAndUserNextPage">Next</button>
+        </div>
+      </div>
+
+      <div v-else-if="currentTab === 'User Stats'">
+        <h3>User Participation Statistics</h3>
+        <div class="search-form">
+          <button type="button" class="search-btn" @click="onUserParticipationStatsLoad">Load User Statistics</button>
+        </div>
+        <div v-if="userParticipationLoading" class="loading">Loading...</div>
+        <div v-else-if="userParticipationError" class="error">{{ userParticipationError }}</div>
+        <div v-else-if="userParticipationStats.length" class="results-container">
+          <div v-for="stat in userParticipationStats" :key="stat.userId" class="result-card">
+            <div class="result-header">
+              <span class="result-type">User</span>
+              <span class="result-id">ID: {{ stat.userId }}</span>
+            </div>
+            <div class="result-content">
+              <div><strong>Username:</strong> {{ stat.username }}</div>
+              <div><strong>Answer Count:</strong> {{ stat.answerCount }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="userParticipationStats.length === 0 && !userParticipationLoading">No user participation statistics available.</div>
+        <div class="pagination" v-if="userParticipationTotalPages > 1">
+          <button :disabled="userParticipationPage === 0" @click="userParticipationPrevPage">Prev</button>
+          <span>Page {{ userParticipationPage + 1 }} of {{ userParticipationTotalPages }}</span>
+          <button :disabled="userParticipationPage === userParticipationTotalPages - 1" @click="userParticipationNextPage">Next</button>
+        </div>
+      </div>
+
       <div v-else-if="currentTab === 'Statistics'">
         <h3>Statistics</h3>
         <button class="search-btn" @click="fetchStatistics" :disabled="statisticsLoading">Refresh</button>
@@ -207,9 +423,16 @@ const tabs = [
   'Global Search',
   'Survey Search',
   'Question Search',
+  'Questions by Survey',
+  'Questions by Type',
   'Choice Search',
+  'Choices by Question',
   'Answer Search',
+  'Answers by User',
+  'Public Answers',
+  'Answers by Q&U',
   'Statistics',
+  'User Stats',
   'Elasticsearch Sync',
 ]
 const currentTab = ref(tabs[0])
@@ -259,6 +482,67 @@ const answerPage = ref(0)
 const answerSize = ref(10)
 const answerTotalPages = ref(1)
 
+// Questions by Survey ID State
+const questionsBySurveyId = ref('')
+const questionsBySurveyResults = ref<any[]>([])
+const questionsBySurveyLoading = ref(false)
+const questionsBySurveyError = ref('')
+const questionsBySurveyPage = ref(0)
+const questionsBySurveySize = ref(10)
+const questionsBySurveyTotalPages = ref(1)
+
+// Questions by Type State
+const questionsByTypeQuery = ref('')
+const questionsByTypeResults = ref<any[]>([])
+const questionsByTypeLoading = ref(false)
+const questionsByTypeError = ref('')
+const questionsByTypePage = ref(0)
+const questionsByTypeSize = ref(10)
+const questionsByTypeTotalPages = ref(1)
+
+// Choices by Question ID State
+const choicesByQuestionId = ref('')
+const choicesByQuestionResults = ref<any[]>([])
+const choicesByQuestionLoading = ref(false)
+const choicesByQuestionError = ref('')
+const choicesByQuestionPage = ref(0)
+const choicesByQuestionSize = ref(10)
+const choicesByQuestionTotalPages = ref(1)
+
+// Answers by User ID State
+const answersByUserId = ref('')
+const answersByUserResults = ref<any[]>([])
+const answersByUserLoading = ref(false)
+const answersByUserError = ref('')
+const answersByUserPage = ref(0)
+const answersByUserSize = ref(10)
+const answersByUserTotalPages = ref(1)
+
+// Public Answers State
+const publicAnswersResults = ref<any[]>([])
+const publicAnswersLoading = ref(false)
+const publicAnswersError = ref('')
+const publicAnswersPage = ref(0)
+const publicAnswersSize = ref(10)
+const publicAnswersTotalPages = ref(1)
+
+// Answers by Question ID and User ID State
+const answersByQuestionAndUserId = ref({ questionId: '', userId: '' })
+const answersByQuestionAndUserResults = ref<any[]>([])
+const answersByQuestionAndUserLoading = ref(false)
+const answersByQuestionAndUserError = ref('')
+const answersByQuestionAndUserPage = ref(0)
+const answersByQuestionAndUserSize = ref(10)
+const answersByQuestionAndUserTotalPages = ref(1)
+
+// User Participation Statistics State
+const userParticipationStats = ref<any[]>([])
+const userParticipationLoading = ref(false)
+const userParticipationError = ref('')
+const userParticipationPage = ref(0)
+const userParticipationSize = ref(10)
+const userParticipationTotalPages = ref(1)
+
 // Statistics State
 const statistics = ref<any>(null)
 const questionTypeStats = ref<any>(null)
@@ -304,8 +588,15 @@ async function fetchGlobalSearch() {
   searchError.value = ''
   try {
     const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search?query=${encodeURIComponent(searchQuery.value)}&page=${page.value}&size=${size.value}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    const res = await axios.get(`http://localhost:8080/api/admin/search`, {
+      params: {
+        query: searchQuery.value,
+        page: page.value,
+        size: size.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
     searchResults.value = res.data.data || []
     totalPages.value = res.data.pagination?.totalPages || 1
   } catch (e: any) {
@@ -321,8 +612,15 @@ async function fetchSurveySearch() {
   surveySearchError.value = ''
   try {
     const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/surveys?query=${encodeURIComponent(surveySearchQuery.value)}&page=${surveyPage.value}&size=${surveySize.value}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    const res = await axios.get(`http://localhost:8080/api/admin/search/surveys`, {
+      params: {
+        query: surveySearchQuery.value,
+        page: surveyPage.value,
+        size: surveySize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
     surveySearchResults.value = res.data.data || []
     surveyTotalPages.value = res.data.pagination?.totalPages || 1
   } catch (e: any) {
@@ -338,8 +636,15 @@ async function fetchQuestionSearch() {
   questionSearchError.value = ''
   try {
     const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/questions?query=${encodeURIComponent(questionSearchQuery.value)}&page=${questionPage.value}&size=${questionSize.value}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    const res = await axios.get(`http://localhost:8080/api/admin/search/questions`, {
+      params: {
+        query: questionSearchQuery.value,
+        page: questionPage.value,
+        size: questionSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
     questionSearchResults.value = res.data.data || []
     questionTotalPages.value = res.data.pagination?.totalPages || 1
   } catch (e: any) {
@@ -355,8 +660,15 @@ async function fetchChoiceSearch() {
   choiceSearchError.value = ''
   try {
     const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/choices?query=${encodeURIComponent(choiceSearchQuery.value)}&page=${choicePage.value}&size=${choiceSize.value}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    const res = await axios.get(`http://localhost:8080/api/admin/search/choices`, {
+      params: {
+        query: choiceSearchQuery.value,
+        page: choicePage.value,
+        size: choiceSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
     choiceSearchResults.value = res.data.data || []
     choiceTotalPages.value = res.data.pagination?.totalPages || 1
   } catch (e: any) {
@@ -380,6 +692,171 @@ async function fetchAnswerSearch() {
     answerSearchError.value = e?.response?.data?.message || 'Failed to search answers.'
   } finally {
     answerSearchLoading.value = false
+  }
+}
+
+async function fetchQuestionsBySurvey() {
+  if (!questionsBySurveyId.value) return
+  questionsBySurveyLoading.value = true
+  questionsBySurveyError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/questions/survey`, {
+      params: {
+        surveyId: questionsBySurveyId.value,
+        page: questionsBySurveyPage.value,
+        size: questionsBySurveySize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    questionsBySurveyResults.value = res.data.data || []
+    questionsBySurveyTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    questionsBySurveyError.value = e?.response?.data?.message || 'Failed to search questions by survey ID.'
+  } finally {
+    questionsBySurveyLoading.value = false
+  }
+}
+
+async function fetchQuestionsByType() {
+  if (!questionsByTypeQuery.value) return
+  questionsByTypeLoading.value = true
+  questionsByTypeError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/questions/type`, {
+      params: {
+        type: questionsByTypeQuery.value,
+        page: questionsByTypePage.value,
+        size: questionsByTypeSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    questionsByTypeResults.value = res.data.data || []
+    questionsByTypeTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    questionsByTypeError.value = e?.response?.data?.message || 'Failed to search questions by type.'
+  } finally {
+    questionsByTypeLoading.value = false
+  }
+}
+
+async function fetchChoicesByQuestion() {
+  if (!choicesByQuestionId.value) return
+  choicesByQuestionLoading.value = true
+  choicesByQuestionError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/choices/question`, {
+      params: {
+        questionId: choicesByQuestionId.value,
+        page: choicesByQuestionPage.value,
+        size: choicesByQuestionSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    choicesByQuestionResults.value = res.data.data || []
+    choicesByQuestionTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    choicesByQuestionError.value = e?.response?.data?.message || 'Failed to search choices by question ID.'
+  } finally {
+    choicesByQuestionLoading.value = false
+  }
+}
+
+async function fetchAnswersByUser() {
+  if (!answersByUserId.value) return
+  answersByUserLoading.value = true
+  answersByUserError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/user`, {
+      params: {
+        userId: answersByUserId.value,
+        page: answersByUserPage.value,
+        size: answersByUserSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    answersByUserResults.value = res.data.data || []
+    answersByUserTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    answersByUserError.value = e?.response?.data?.message || 'Failed to search answers by user ID.'
+  } finally {
+    answersByUserLoading.value = false
+  }
+}
+
+async function fetchPublicAnswers() {
+  publicAnswersLoading.value = true
+  publicAnswersError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/public`, {
+      params: {
+        page: publicAnswersPage.value,
+        size: publicAnswersSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    publicAnswersResults.value = res.data.data || []
+    publicAnswersTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    publicAnswersError.value = e?.response?.data?.message || 'Failed to search public answers.'
+  } finally {
+    publicAnswersLoading.value = false
+  }
+}
+
+async function fetchAnswersByQuestionAndUser() {
+  if (!answersByQuestionAndUserId.value.questionId || !answersByQuestionAndUserId.value.userId) return
+  answersByQuestionAndUserLoading.value = true
+  answersByQuestionAndUserError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/question-user`, {
+      params: {
+        questionId: answersByQuestionAndUserId.value.questionId,
+        userId: answersByQuestionAndUserId.value.userId,
+        page: answersByQuestionAndUserPage.value,
+        size: answersByQuestionAndUserSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    answersByQuestionAndUserResults.value = res.data.data || []
+    answersByQuestionAndUserTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    answersByQuestionAndUserError.value = e?.response?.data?.message || 'Failed to search answers by question and user.'
+  } finally {
+    answersByQuestionAndUserLoading.value = false
+  }
+}
+
+async function fetchUserParticipationStats() {
+  userParticipationLoading.value = true
+  userParticipationError.value = ''
+  try {
+    const token = Cookies.get('accessToken')
+    const res = await axios.get(`http://localhost:8080/api/admin/statistics/user-participation`, {
+      params: {
+        page: userParticipationPage.value,
+        size: userParticipationSize.value
+      },
+      headers: { 'Authorization': `Bearer ${token}` }, 
+      withCredentials: true
+    })
+    userParticipationStats.value = res.data.data || []
+    userParticipationTotalPages.value = res.data.pagination?.totalPages || 1
+  } catch (e: any) {
+    userParticipationError.value = e?.response?.data?.message || 'Failed to fetch user participation statistics.'
+  } finally {
+    userParticipationLoading.value = false
   }
 }
 
@@ -439,6 +916,146 @@ function onChoiceSearch() {
 function onAnswerSearch() {
   answerPage.value = 0
   fetchAnswerSearch()
+}
+
+function onQuestionsBySurveySearch() {
+  questionsBySurveyPage.value = 0
+  fetchQuestionsBySurvey()
+}
+
+function onQuestionsByTypeSearch() {
+  questionsByTypePage.value = 0
+  fetchQuestionsByType()
+}
+
+function onChoicesByQuestionSearch() {
+  choicesByQuestionPage.value = 0
+  fetchChoicesByQuestion()
+}
+
+function onAnswersByUserSearch() {
+  answersByUserPage.value = 0
+  fetchAnswersByUser()
+}
+
+function onPublicAnswersSearch() {
+  publicAnswersPage.value = 0
+  fetchPublicAnswers()
+}
+
+function onAnswersByQuestionAndUserSearch() {
+  answersByQuestionAndUserPage.value = 0
+  fetchAnswersByQuestionAndUser()
+}
+
+function onUserParticipationStatsLoad() {
+  userParticipationPage.value = 0
+  fetchUserParticipationStats()
+}
+
+// Pagination handlers for questions by survey
+function questionsBySurveyPrevPage() { 
+  if (questionsBySurveyPage.value > 0) { 
+    questionsBySurveyPage.value--
+    fetchQuestionsBySurvey() 
+  } 
+}
+
+function questionsBySurveyNextPage() { 
+  if (questionsBySurveyPage.value < questionsBySurveyTotalPages.value - 1) { 
+    questionsBySurveyPage.value++
+    fetchQuestionsBySurvey() 
+  } 
+}
+
+// Pagination handlers for questions by type
+function questionsByTypePrevPage() { 
+  if (questionsByTypePage.value > 0) { 
+    questionsByTypePage.value--
+    fetchQuestionsByType() 
+  } 
+}
+
+function questionsByTypeNextPage() { 
+  if (questionsByTypePage.value < questionsByTypeTotalPages.value - 1) { 
+    questionsByTypePage.value++
+    fetchQuestionsByType() 
+  } 
+}
+
+// Pagination handlers for choices by question
+function choicesByQuestionPrevPage() { 
+  if (choicesByQuestionPage.value > 0) { 
+    choicesByQuestionPage.value--
+    fetchChoicesByQuestion() 
+  } 
+}
+
+function choicesByQuestionNextPage() { 
+  if (choicesByQuestionPage.value < choicesByQuestionTotalPages.value - 1) { 
+    choicesByQuestionPage.value++
+    fetchChoicesByQuestion() 
+  } 
+}
+
+// Pagination handlers for answers by user
+function answersByUserPrevPage() { 
+  if (answersByUserPage.value > 0) { 
+    answersByUserPage.value--
+    fetchAnswersByUser() 
+  } 
+}
+
+function answersByUserNextPage() { 
+  if (answersByUserPage.value < answersByUserTotalPages.value - 1) { 
+    answersByUserPage.value++
+    fetchAnswersByUser() 
+  } 
+}
+
+// Pagination handlers for public answers
+function publicAnswersPrevPage() { 
+  if (publicAnswersPage.value > 0) { 
+    publicAnswersPage.value--
+    fetchPublicAnswers() 
+  } 
+}
+
+function publicAnswersNextPage() { 
+  if (publicAnswersPage.value < publicAnswersTotalPages.value - 1) { 
+    publicAnswersPage.value++
+    fetchPublicAnswers() 
+  } 
+}
+
+// Pagination handlers for answers by question and user
+function answersByQuestionAndUserPrevPage() { 
+  if (answersByQuestionAndUserPage.value > 0) { 
+    answersByQuestionAndUserPage.value--
+    fetchAnswersByQuestionAndUser() 
+  } 
+}
+
+function answersByQuestionAndUserNextPage() { 
+  if (answersByQuestionAndUserPage.value < answersByQuestionAndUserTotalPages.value - 1) { 
+    answersByQuestionAndUserPage.value++
+    fetchAnswersByQuestionAndUser() 
+  } 
+}
+
+// Pagination handlers for user participation stats
+function userParticipationPrevPage() { 
+  if (userParticipationPage.value > 0) { 
+    userParticipationPage.value--
+    fetchUserParticipationStats() 
+  } 
+}
+
+function userParticipationNextPage() { 
+  if (userParticipationPage.value < userParticipationTotalPages.value - 1) { 
+    userParticipationPage.value++
+    fetchUserParticipationStats() 
+  } 
 }
 
 function prevPage() { if (page.value > 0) { page.value--; fetchGlobalSearch() } }
@@ -739,4 +1356,3 @@ function answerNextPage() { if (answerPage.value < answerTotalPages.value - 1) {
   }
 }
 </style>
-``` 
