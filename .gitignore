@@ -35,3 +35,8 @@ build/
 ### Logging ###
 /logs
 *.log
+
+### Environment Variables ###
+.env
+# Keep the example template to be committed
+# .env.example

@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   kafka:
     producer:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -24,9 +26,9 @@ spring:
   codec:
     max-in-memory-size: 16MB
   r2dbc:
-    password: postgres
-    url: r2dbc:postgresql://localhost:5432/survey
-    username: postgres
+    password: ${DB_PASSWORD}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
   sql:
     init:
       mode: always
@@ -43,7 +45,7 @@ spring:
       FAIL_ON_NULL_FOR_PRIMITIVES: false
       ACCEPT_EMPTY_STRING_AS_NULL_OBJECT: true
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URIS}
     connection-timeout: 10s
     socket-timeout: 30s
 
@@ -58,10 +60,10 @@ springdoc:
       name: Default
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET}
   refresh:
-    expiration: '604800000'
-  expiration: '10000'
+    expiration: '${JWT_REFRESH_EXPIRATION}'
+  expiration: '${JWT_EXPIRATION}'
 
 server:
   port: '8080'
