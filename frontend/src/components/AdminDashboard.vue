@@ -377,7 +377,7 @@
             <h4>General Statistics</h4>
             <div class="stats-grid">
               <div
-                v-for="([key, value], index) in Object.entries(statistics).slice(0, -1)"
+                v-for="([key, value]) in Object.entries(statistics).slice(0, -1)"
                 :key="key"
                 class="stat-card">
                 <div class="stat-label">{{ formatStatKey(key) }}</div>
@@ -415,9 +415,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import axios from 'axios'
-import Cookies from 'js-cookie'
+import { ref, onMounted, onUnmounted } from 'vue'
+import apiClient from '../utils/apiClient'
+import { updateAuthState, isTokenExpiringSoon, refreshAccessToken, isRefreshing } from '../utils/authEvents'
 
 const tabs = [
   'Global Search',
@@ -437,7 +437,6 @@ const tabs = [
 ]
 const currentTab = ref(tabs[0])
 
-// Global Search State
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 const searchLoading = ref(false)
@@ -446,7 +445,6 @@ const page = ref(0)
 const size = ref(10)
 const totalPages = ref(1)
 
-// Survey Search State
 const surveySearchQuery = ref('')
 const surveySearchResults = ref<any[]>([])
 const surveySearchLoading = ref(false)
@@ -455,7 +453,6 @@ const surveyPage = ref(0)
 const surveySize = ref(10)
 const surveyTotalPages = ref(1)
 
-// Question Search State
 const questionSearchQuery = ref('')
 const questionSearchResults = ref<any[]>([])
 const questionSearchLoading = ref(false)
@@ -464,7 +461,6 @@ const questionPage = ref(0)
 const questionSize = ref(10)
 const questionTotalPages = ref(1)
 
-// Choice Search State
 const choiceSearchQuery = ref('')
 const choiceSearchResults = ref<any[]>([])
 const choiceSearchLoading = ref(false)
@@ -473,7 +469,6 @@ const choicePage = ref(0)
 const choiceSize = ref(10)
 const choiceTotalPages = ref(1)
 
-// Answer Search State
 const answerSearchQuestionId = ref('')
 const answerSearchResults = ref<any[]>([])
 const answerSearchLoading = ref(false)
@@ -482,7 +477,6 @@ const answerPage = ref(0)
 const answerSize = ref(10)
 const answerTotalPages = ref(1)
 
-// Questions by Survey ID State
 const questionsBySurveyId = ref('')
 const questionsBySurveyResults = ref<any[]>([])
 const questionsBySurveyLoading = ref(false)
@@ -491,7 +485,6 @@ const questionsBySurveyPage = ref(0)
 const questionsBySurveySize = ref(10)
 const questionsBySurveyTotalPages = ref(1)
 
-// Questions by Type State
 const questionsByTypeQuery = ref('')
 const questionsByTypeResults = ref<any[]>([])
 const questionsByTypeLoading = ref(false)
@@ -500,7 +493,6 @@ const questionsByTypePage = ref(0)
 const questionsByTypeSize = ref(10)
 const questionsByTypeTotalPages = ref(1)
 
-// Choices by Question ID State
 const choicesByQuestionId = ref('')
 const choicesByQuestionResults = ref<any[]>([])
 const choicesByQuestionLoading = ref(false)
@@ -509,7 +501,6 @@ const choicesByQuestionPage = ref(0)
 const choicesByQuestionSize = ref(10)
 const choicesByQuestionTotalPages = ref(1)
 
-// Answers by User ID State
 const answersByUserId = ref('')
 const answersByUserResults = ref<any[]>([])
 const answersByUserLoading = ref(false)
@@ -518,7 +509,6 @@ const answersByUserPage = ref(0)
 const answersByUserSize = ref(10)
 const answersByUserTotalPages = ref(1)
 
-// Public Answers State
 const publicAnswersResults = ref<any[]>([])
 const publicAnswersLoading = ref(false)
 const publicAnswersError = ref('')
@@ -526,7 +516,6 @@ const publicAnswersPage = ref(0)
 const publicAnswersSize = ref(10)
 const publicAnswersTotalPages = ref(1)
 
-// Answers by Question ID and User ID State
 const answersByQuestionAndUserId = ref({ questionId: '', userId: '' })
 const answersByQuestionAndUserResults = ref<any[]>([])
 const answersByQuestionAndUserLoading = ref(false)
@@ -535,7 +524,6 @@ const answersByQuestionAndUserPage = ref(0)
 const answersByQuestionAndUserSize = ref(10)
 const answersByQuestionAndUserTotalPages = ref(1)
 
-// User Participation Statistics State
 const userParticipationStats = ref<any[]>([])
 const userParticipationLoading = ref(false)
 const userParticipationError = ref('')
@@ -543,18 +531,15 @@ const userParticipationPage = ref(0)
 const userParticipationSize = ref(10)
 const userParticipationTotalPages = ref(1)
 
-// Statistics State
 const statistics = ref<any>(null)
 const questionTypeStats = ref<any>(null)
 const statisticsLoading = ref(false)
 const statisticsError = ref('')
 
-// Elasticsearch Sync State
 const syncLoading = ref(false)
 const syncError = ref('')
 const syncSuccess = ref('')
 
-// Helper functions for JSON formatting
 function isValidJson(str: string) {
   try {
     if (typeof str === 'object') return true;
@@ -582,20 +567,25 @@ function formatStatKey(key: string) {
     .replace(/_/g, ' ');
 }
 
+async function ensureValidToken() {
+  if (isTokenExpiringSoon(300) && !isRefreshing.value) {
+    console.log('Token expiring soon, refreshing before API call')
+    await refreshAccessToken()
+  }
+}
+
 async function fetchGlobalSearch() {
   if (!searchQuery.value) return
   searchLoading.value = true
   searchError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search`, {
       params: {
         query: searchQuery.value,
         page: page.value,
         size: size.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     searchResults.value = res.data.data || []
     totalPages.value = res.data.pagination?.totalPages || 1
@@ -611,15 +601,13 @@ async function fetchSurveySearch() {
   surveySearchLoading.value = true
   surveySearchError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/surveys`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/surveys`, {
       params: {
         query: surveySearchQuery.value,
         page: surveyPage.value,
         size: surveySize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     surveySearchResults.value = res.data.data || []
     surveyTotalPages.value = res.data.pagination?.totalPages || 1
@@ -635,15 +623,13 @@ async function fetchQuestionSearch() {
   questionSearchLoading.value = true
   questionSearchError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/questions`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/questions`, {
       params: {
         query: questionSearchQuery.value,
         page: questionPage.value,
         size: questionSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     questionSearchResults.value = res.data.data || []
     questionTotalPages.value = res.data.pagination?.totalPages || 1
@@ -659,15 +645,13 @@ async function fetchChoiceSearch() {
   choiceSearchLoading.value = true
   choiceSearchError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/choices`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/choices`, {
       params: {
         query: choiceSearchQuery.value,
         page: choicePage.value,
         size: choiceSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     choiceSearchResults.value = res.data.data || []
     choiceTotalPages.value = res.data.pagination?.totalPages || 1
@@ -683,9 +667,14 @@ async function fetchAnswerSearch() {
   answerSearchLoading.value = true
   answerSearchError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/question?questionId=${answerSearchQuestionId.value}&page=${answerPage.value}&size=${answerSize.value}`,
-      { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/answers/question`, {
+      params: {
+        questionId: answerSearchQuestionId.value,
+        page: answerPage.value,
+        size: answerSize.value
+      }
+    })
     answerSearchResults.value = res.data.data || []
     answerTotalPages.value = res.data.pagination?.totalPages || 1
   } catch (e: any) {
@@ -700,15 +689,13 @@ async function fetchQuestionsBySurvey() {
   questionsBySurveyLoading.value = true
   questionsBySurveyError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/questions/survey`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/questions/survey`, {
       params: {
         surveyId: questionsBySurveyId.value,
         page: questionsBySurveyPage.value,
         size: questionsBySurveySize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     questionsBySurveyResults.value = res.data.data || []
     questionsBySurveyTotalPages.value = res.data.pagination?.totalPages || 1
@@ -724,15 +711,13 @@ async function fetchQuestionsByType() {
   questionsByTypeLoading.value = true
   questionsByTypeError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/questions/type`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/questions/type`, {
       params: {
         type: questionsByTypeQuery.value,
         page: questionsByTypePage.value,
         size: questionsByTypeSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     questionsByTypeResults.value = res.data.data || []
     questionsByTypeTotalPages.value = res.data.pagination?.totalPages || 1
@@ -748,15 +733,13 @@ async function fetchChoicesByQuestion() {
   choicesByQuestionLoading.value = true
   choicesByQuestionError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/choices/question`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/choices/question`, {
       params: {
         questionId: choicesByQuestionId.value,
         page: choicesByQuestionPage.value,
         size: choicesByQuestionSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     choicesByQuestionResults.value = res.data.data || []
     choicesByQuestionTotalPages.value = res.data.pagination?.totalPages || 1
@@ -772,15 +755,13 @@ async function fetchAnswersByUser() {
   answersByUserLoading.value = true
   answersByUserError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/user`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/answers/user`, {
       params: {
         userId: answersByUserId.value,
         page: answersByUserPage.value,
         size: answersByUserSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     answersByUserResults.value = res.data.data || []
     answersByUserTotalPages.value = res.data.pagination?.totalPages || 1
@@ -795,14 +776,12 @@ async function fetchPublicAnswers() {
   publicAnswersLoading.value = true
   publicAnswersError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/public`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/answers/public`, {
       params: {
         page: publicAnswersPage.value,
         size: publicAnswersSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     publicAnswersResults.value = res.data.data || []
     publicAnswersTotalPages.value = res.data.pagination?.totalPages || 1
@@ -818,16 +797,14 @@ async function fetchAnswersByQuestionAndUser() {
   answersByQuestionAndUserLoading.value = true
   answersByQuestionAndUserError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/search/answers/question-user`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/search/answers/question-user`, {
       params: {
         questionId: answersByQuestionAndUserId.value.questionId,
         userId: answersByQuestionAndUserId.value.userId,
         page: answersByQuestionAndUserPage.value,
         size: answersByQuestionAndUserSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     answersByQuestionAndUserResults.value = res.data.data || []
     answersByQuestionAndUserTotalPages.value = res.data.pagination?.totalPages || 1
@@ -842,14 +819,12 @@ async function fetchUserParticipationStats() {
   userParticipationLoading.value = true
   userParticipationError.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.get(`http://localhost:8080/api/admin/statistics/user-participation`, {
+    await ensureValidToken()
+    const res = await apiClient.get(`/api/admin/statistics/user-participation`, {
       params: {
         page: userParticipationPage.value,
         size: userParticipationSize.value
-      },
-      headers: { 'Authorization': `Bearer ${token}` }, 
-      withCredentials: true
+      }
     })
     userParticipationStats.value = res.data.data || []
     userParticipationTotalPages.value = res.data.pagination?.totalPages || 1
@@ -864,10 +839,10 @@ async function fetchStatistics() {
   statisticsLoading.value = true
   statisticsError.value = ''
   try {
-    const token = Cookies.get('accessToken')
+    await ensureValidToken()
     const [statsRes, typeRes] = await Promise.all([
-      axios.get('http://localhost:8080/api/admin/statistics', { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true }),
-      axios.get('http://localhost:8080/api/admin/statistics/question-types', { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+      apiClient.get('/api/admin/statistics'),
+      apiClient.get('/api/admin/statistics/question-types')
     ])
     statistics.value = statsRes.data.data || statsRes.data || null
     questionTypeStats.value = typeRes.data.data || typeRes.data || null
@@ -883,8 +858,8 @@ async function syncElasticsearch() {
   syncError.value = ''
   syncSuccess.value = ''
   try {
-    const token = Cookies.get('accessToken')
-    const res = await axios.post('http://localhost:8080/api/admin/elasticsearch/sync', {}, { headers: { 'Authorization': `Bearer ${token}` }, withCredentials: true })
+    await ensureValidToken()
+    const res = await apiClient.post('/api/admin/elasticsearch/sync', {})
     syncSuccess.value = res.data.message || 'Elasticsearch synchronization completed successfully.'
   } catch (e: any) {
     syncError.value = e?.response?.data?.message || 'Failed to sync Elasticsearch.'
@@ -953,7 +928,6 @@ function onUserParticipationStatsLoad() {
   fetchUserParticipationStats()
 }
 
-// Pagination handlers for questions by survey
 function questionsBySurveyPrevPage() { 
   if (questionsBySurveyPage.value > 0) { 
     questionsBySurveyPage.value--
@@ -968,7 +942,6 @@ function questionsBySurveyNextPage() {
   } 
 }
 
-// Pagination handlers for questions by type
 function questionsByTypePrevPage() { 
   if (questionsByTypePage.value > 0) { 
     questionsByTypePage.value--
@@ -983,7 +956,6 @@ function questionsByTypeNextPage() {
   } 
 }
 
-// Pagination handlers for choices by question
 function choicesByQuestionPrevPage() { 
   if (choicesByQuestionPage.value > 0) { 
     choicesByQuestionPage.value--
@@ -998,7 +970,6 @@ function choicesByQuestionNextPage() {
   } 
 }
 
-// Pagination handlers for answers by user
 function answersByUserPrevPage() { 
   if (answersByUserPage.value > 0) { 
     answersByUserPage.value--
@@ -1013,7 +984,6 @@ function answersByUserNextPage() {
   } 
 }
 
-// Pagination handlers for public answers
 function publicAnswersPrevPage() { 
   if (publicAnswersPage.value > 0) { 
     publicAnswersPage.value--
@@ -1028,7 +998,6 @@ function publicAnswersNextPage() {
   } 
 }
 
-// Pagination handlers for answers by question and user
 function answersByQuestionAndUserPrevPage() { 
   if (answersByQuestionAndUserPage.value > 0) { 
     answersByQuestionAndUserPage.value--
@@ -1043,7 +1012,6 @@ function answersByQuestionAndUserNextPage() {
   } 
 }
 
-// Pagination handlers for user participation stats
 function userParticipationPrevPage() { 
   if (userParticipationPage.value > 0) { 
     userParticipationPage.value--
@@ -1068,6 +1036,24 @@ function choicePrevPage() { if (choicePage.value > 0) { choicePage.value--; fetc
 function choiceNextPage() { if (choicePage.value < choiceTotalPages.value - 1) { choicePage.value++; fetchChoiceSearch() } }
 function answerPrevPage() { if (answerPage.value > 0) { answerPage.value--; fetchAnswerSearch() } }
 function answerNextPage() { if (answerPage.value < answerTotalPages.value - 1) { answerPage.value++; fetchAnswerSearch() } }
+
+onMounted(() => {
+  updateAuthState()
+
+  if (isTokenExpiringSoon(300) && !isRefreshing.value) {
+    refreshAccessToken()
+  }
+
+  window.addEventListener('auth-state-changed', onAuthStateChanged)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('auth-state-changed', onAuthStateChanged)
+})
+
+function onAuthStateChanged() {
+  updateAuthState()
+}
 </script>
 
 <style scoped>
@@ -1112,11 +1098,6 @@ function answerNextPage() { if (answerPage.value < answerTotalPages.value - 1) {
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   margin-bottom: 0.5rem;
-}
-
-.tab-btn.active {
-  background: var(--color-accent);
-  color: var(--color-primary);
 }
 
 .tab-content {

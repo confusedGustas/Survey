@@ -15,7 +15,6 @@
         <div v-for="question in survey.questions" :key="question.id" class="question-container">
           <h3 class="question-text">{{ question.content }}</h3>
 
-          <!-- Text input question type -->
           <div v-if="question.questionType === 'TEXT'" class="answer-text">
             <textarea 
               v-model="answers[question.id]" 
@@ -29,7 +28,6 @@
             </div>
           </div>
 
-          <!-- Single choice question type -->
           <div v-else-if="question.questionType === 'SINGLE'" class="answer-single">
             <div v-for="choice in question.choices" :key="choice.id" class="choice-option">
               <input 
@@ -44,7 +42,6 @@
             </div>
           </div>
 
-          <!-- Multiple choice question type -->
           <div v-else-if="question.questionType === 'MULTIPLE'" class="answer-multiple">
             <div v-for="choice in question.choices" :key="choice.id" class="choice-option">
               <input 
@@ -75,12 +72,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import Cookies from 'js-cookie'
 
 const route = useRoute()
-const router = useRouter()
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -93,14 +89,11 @@ const survey = ref<any>({
   questions: []
 })
 
-// Store answers in different formats depending on question type
 const answers = reactive<Record<number, any>>({})
 const multipleChoiceAnswers = reactive<Record<number, Array<number>>>({})
 
-// Get survey ID from route params
 const surveyId = computed(() => route.params.id)
 
-// Fetch survey data on component mount
 onMounted(async () => {
   if (!surveyId.value) {
     error.value = 'Survey ID is required'
@@ -118,8 +111,7 @@ onMounted(async () => {
 
     if (res.data && res.data.data) {
       survey.value = res.data.data
-      
-      // Initialize answers object for multiple choice questions
+
       survey.value.questions.forEach((question: any) => {
         if (question.questionType === 'MULTIPLE') {
           multipleChoiceAnswers[question.id] = []
@@ -139,7 +131,6 @@ onMounted(async () => {
   }
 })
 
-// Format answers for submission
 const formatAnswersForSubmission = () => {
   const formattedAnswers = survey.value.questions.map((question: any) => {
     if (question.questionType === 'TEXT') {
@@ -164,11 +155,9 @@ const formatAnswersForSubmission = () => {
       }
     }
   }).filter((answer: any) => {
-    // Filter out incomplete answers
     if (answer.textResponse !== undefined && answer.textResponse !== '') return true
     if (answer.choiceId !== undefined && answer.choiceId !== null) return true
-    if (answer.choiceIds !== undefined && answer.choiceIds.length > 0) return true
-    return false
+    return answer.choiceIds !== undefined && answer.choiceIds.length > 0;
   })
 
   return {
@@ -177,7 +166,6 @@ const formatAnswersForSubmission = () => {
   }
 }
 
-// Submit survey answers
 const submitSurvey = async () => {
   try {
     submitting.value = true

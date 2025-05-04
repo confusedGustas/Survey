@@ -19,6 +19,7 @@ import { computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { isAuthenticated, updateAuthState, logout } from '../utils/authEvents'
 import Cookies from 'js-cookie'
+import apiClient from '../utils/apiClient'
 
 const router = useRouter()
 const route = useRoute()
@@ -41,28 +42,30 @@ function handleLogout() {
   router.push('/')
 }
 
-// Check authentication on every route change
+async function checkApiHealth() {
+  try {
+    await apiClient.get('/auth/health')
+    console.log('API health check successful')
+  } catch (error) {
+    console.error('API health check failed:', error)
+  }
+}
+
 watch(() => route.path, () => {
   updateAuthState()
 }, { immediate: true })
 
-// Check authentication every second to handle token expiration
-const authCheckInterval = setInterval(() => {
-  updateAuthState()
-}, 1000)
-
-// Clean up interval on component unmount
-onUnmounted(() => {
-  clearInterval(authCheckInterval)
-})
-
 onMounted(() => {
   updateAuthState()
-  
-  // Add a custom event listener for auth changes
+  checkApiHealth()
+
   window.addEventListener('auth-state-changed', () => {
     updateAuthState()
   })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('auth-state-changed', updateAuthState)
 })
 </script>
 
@@ -80,9 +83,6 @@ onMounted(() => {
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s;
-}
-.nav-link.router-link-exact-active {
-  color: var(--color-accent);
 }
 .nav-link:hover {
   color: var(--color-accent);

@@ -10,7 +10,7 @@ import { ref } from 'vue'
 import LoginForm from './LoginForm.vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { login, isAuthenticated } from '../utils/authEvents'
+import { login } from '../utils/authEvents'
 
 const apiError = ref('')
 const router = useRouter()
@@ -32,11 +32,9 @@ async function handleLogin({ username, password }: { username: string, password:
     
     if (data.accessToken) {
       console.log('Login successful, received access token')
-      
-      // Use the centralized login function from authEvents
+
       login(data.accessToken, data.refreshToken)
-      
-      // Wait a moment to ensure tokens are set before navigation
+
       setTimeout(() => {
         console.log('Navigating to profile page')
         router.push('/profile')

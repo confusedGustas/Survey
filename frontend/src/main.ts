@@ -2,5 +2,14 @@ import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
 import router from './router'
+import { updateAuthState } from './utils/authEvents'
 
-createApp(App).use(router).mount('#app')
+const app = createApp(App)
+
+app.use(router)
+
+window.addEventListener('auth-state-changed', () => {
+  updateAuthState()
+})
+
+app.mount('#app')

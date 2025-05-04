@@ -103,12 +103,6 @@ class SurveyServiceTest {
             when(surveyRepository.save(any(Survey.class))).thenReturn(Mono.just(survey));
             when(questionRepository.save(any(Question.class))).thenReturn(Mono.just(question));
             when(surveyMapper.mapToSurveyResponse(any(Survey.class), any())).thenReturn(expectedResponse);
-            
-            SurveyRequestDTO requestDTO = SurveyRequestDTO.builder()
-                    .title("Test Survey")
-                    .description("A test survey")
-                    .questions(List.of())
-                    .build();
 
             Survey survey1 = Survey.builder()
                     .id(1)
