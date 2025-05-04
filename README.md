@@ -11,7 +11,6 @@ A comprehensive survey management system built with Spring Boot (backend) and Vu
 - Admin dashboard with advanced statistics
 - Elasticsearch integration for powerful searching
 - Reactive programming model using Spring WebFlux
-- Kafka integration for event processing
 
 ## Technology Stack
 
@@ -23,7 +22,6 @@ A comprehensive survey management system built with Spring Boot (backend) and Vu
 - Spring Security with JWT authentication
 - Spring Data R2DBC (reactive database access)
 - PostgreSQL (database)
-- Kafka (event messaging)
 - Elasticsearch (search capabilities)
 - Log4j2 (logging)
 - Swagger/OpenAPI (API documentation)
@@ -64,12 +62,11 @@ The easiest way to run all required services:
 1. Start the infrastructure services:
 
 ```bash
-docker compose up
+docker compose up -d
 ```
 
 This will start:
 - PostgreSQL database
-- Kafka and Zookeeper
 - Elasticsearch
 
 2. Build and run the application:

@@ -1,16 +1,6 @@
 spring:
   config:
     import: optional:file:.env[.properties]
-  kafka:
-    producer:
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    consumer:
-      group-id: survey-app-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    bootstrap-servers: localhost:9092
   cloud:
     gateway:
       discovery:
